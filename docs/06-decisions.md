@@ -67,6 +67,7 @@ toute mise en service, pas dans la base.
 |---|---|---|
 | Écran « Nouvel immeuble » | Tant qu'il n'y a qu'un immeuble, la saisie du règlement et l'import du registre se font en SQL. | Le deuxième immeuble confié au cabinet. |
 | Page d'accueil publique | Les utilisateurs du pilote reçoivent un lien direct vers leur espace ; une vitrine ne leur sert à rien. | Le démarchage d'un cabinet tiers — et le choix du nom, dont elle dépend entièrement. |
+| Expéditeur de courriel réel (SMTP) | Le service intégré de Supabase est bridé à quelques messages par heure et destiné aux tests. | **Avant toute mise en service** : dès que les 19 copropriétaires doivent recevoir un appel de fonds ou un code de connexion. Prestataire à choisir (Resend, Postmark ou équivalent). |
 | Dépôt du règlement en PDF avec extraction des paramètres | Demande du travail et ne dispense jamais d'une validation humaine : une erreur de lecture se paierait en assemblée. | Le troisième immeuble, quand la saisie manuelle devient répétitive. Facturé comme prestation de démarrage, pas offert : c'est du conseil juridique outillé. |
 
 ## Points de vigilance sur les données
