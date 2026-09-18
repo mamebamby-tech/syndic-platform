@@ -1,0 +1,25 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+
+.env
+.env.local
+.env.*.local
+
+.DS_Store
+*.log
+npm-debug.log*
+.pnpm-debug.log*
+
+.vercel
+.turbo
+*.tsbuildinfo
+coverage/
+.supabase/
+
+# Données réelles de copropriété : ne jamais versionner hors du seed maîtrisé
+/donnees-privees/
+*.xlsx
+!supabase/seed/*.sql
