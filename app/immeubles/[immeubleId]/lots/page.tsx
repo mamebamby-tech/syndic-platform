@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { listerRegistreLots, type DetenteurLot } from "@/lib/data/lots";
 
 function formaterSuperficie(valeur: number | null) {
@@ -20,7 +21,13 @@ const LIBELLES_NATURE: Record<DetenteurLot["nature"], string> = {
   indivision: "indivision",
 };
 
-function DetenteursCellule({ detenteurs }: { detenteurs: DetenteurLot[] }) {
+function DetenteursCellule({
+  detenteurs,
+  immeubleId,
+}: {
+  detenteurs: DetenteurLot[];
+  immeubleId: string;
+}) {
   if (detenteurs.length === 0) {
     return <span className="text-encre-3">Aucun détenteur actif</span>;
   }
@@ -29,7 +36,12 @@ function DetenteursCellule({ detenteurs }: { detenteurs: DetenteurLot[] }) {
     <ul className="space-y-1">
       {detenteurs.map((detenteur) => (
         <li key={detenteur.proprietaireId}>
-          <span className="text-encre">{detenteur.nom}</span>
+          <Link
+            href={`/immeubles/${immeubleId}/proprietaires/${detenteur.proprietaireId}`}
+            className="text-action underline-offset-2 hover:underline"
+          >
+            {detenteur.nom}
+          </Link>
           {detenteur.groupeNom && (
             <span className="text-encre-3"> · groupe {detenteur.groupeNom}</span>
           )}
@@ -90,7 +102,7 @@ export default async function PageRegistreLots({
                   {formaterQuotePart(lot.tantiemes, totalTantiemes)}
                 </td>
                 <td className="px-4 py-3">
-                  <DetenteursCellule detenteurs={lot.detenteurs} />
+                  <DetenteursCellule detenteurs={lot.detenteurs} immeubleId={immeubleId} />
                 </td>
               </tr>
             ))}

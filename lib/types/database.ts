@@ -14,6 +14,16 @@ export type NatureDetention =
   | "usufruit"
   | "indivision";
 export type Periodicite = "mensuel" | "trimestriel" | "semestriel" | "annuel";
+export type StatutPeriode = "brouillon" | "vote" | "appele" | "clos";
+export type StatutAppel = "brouillon" | "emis" | "partiel" | "solde" | "annule";
+export type MoyenPaiement =
+  | "wave"
+  | "orange_money"
+  | "virement"
+  | "virement_international"
+  | "especes"
+  | "cheque";
+export type StatutPaiement = "en_attente" | "confirme" | "echoue" | "rembourse";
 
 export interface Database {
   public: {
@@ -200,14 +210,179 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["acces_personnes"]["Row"]>;
         Relationships: [];
       };
+      cles_repartition: {
+        Row: {
+          id: string;
+          immeuble_id: string;
+          code: string;
+          libelle: string;
+          methode: string;
+          parametres: Record<string, unknown>;
+          article: string | null;
+        };
+        Insert: Partial<Database["public"]["Tables"]["cles_repartition"]["Row"]> & {
+          immeuble_id: string;
+          code: string;
+          libelle: string;
+          methode: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["cles_repartition"]["Row"]>;
+        Relationships: [];
+      };
+      postes_charges: {
+        Row: {
+          id: string;
+          immeuble_id: string;
+          libelle: string;
+          categorie: string;
+          cle_repartition_id: string;
+          actif: boolean;
+          ordre: number;
+        };
+        Insert: Partial<Database["public"]["Tables"]["postes_charges"]["Row"]> & {
+          immeuble_id: string;
+          libelle: string;
+          cle_repartition_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["postes_charges"]["Row"]>;
+        Relationships: [];
+      };
+      exercices: {
+        Row: {
+          id: string;
+          immeuble_id: string;
+          libelle: string;
+          date_debut: string;
+          date_fin: string;
+          budget_vote: number | null;
+          vote_le: string | null;
+        };
+        Insert: Partial<Database["public"]["Tables"]["exercices"]["Row"]> & {
+          immeuble_id: string;
+          libelle: string;
+          date_debut: string;
+          date_fin: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["exercices"]["Row"]>;
+        Relationships: [];
+      };
+      periodes: {
+        Row: {
+          id: string;
+          exercice_id: string;
+          libelle: string;
+          date_debut: string;
+          date_fin: string;
+          date_echeance: string;
+          statut: StatutPeriode;
+        };
+        Insert: Partial<Database["public"]["Tables"]["periodes"]["Row"]> & {
+          exercice_id: string;
+          libelle: string;
+          date_debut: string;
+          date_fin: string;
+          date_echeance: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["periodes"]["Row"]>;
+        Relationships: [];
+      };
+      budget_lignes: {
+        Row: {
+          id: string;
+          periode_id: string;
+          poste_charge_id: string;
+          montant: number;
+          fournisseur: string | null;
+          note: string | null;
+        };
+        Insert: Partial<Database["public"]["Tables"]["budget_lignes"]["Row"]> & {
+          periode_id: string;
+          poste_charge_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["budget_lignes"]["Row"]>;
+        Relationships: [];
+      };
+      appels: {
+        Row: {
+          id: string;
+          periode_id: string;
+          proprietaire_id: string;
+          reference: string;
+          montant_total: number;
+          report_anterieur: number;
+          date_emission: string | null;
+          date_echeance: string;
+          statut: StatutAppel;
+          document_path: string | null;
+          cree_le: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["appels"]["Row"]> & {
+          periode_id: string;
+          proprietaire_id: string;
+          reference: string;
+          date_echeance: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["appels"]["Row"]>;
+        Relationships: [];
+      };
+      appel_lignes: {
+        Row: {
+          id: string;
+          appel_id: string;
+          lot_id: string;
+          poste_charge_id: string;
+          base_calcul: number;
+          montant: number;
+        };
+        Insert: Partial<Database["public"]["Tables"]["appel_lignes"]["Row"]> & {
+          appel_id: string;
+          lot_id: string;
+          poste_charge_id: string;
+          base_calcul: number;
+          montant: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["appel_lignes"]["Row"]>;
+        Relationships: [];
+      };
+      paiements: {
+        Row: {
+          id: string;
+          appel_id: string | null;
+          proprietaire_id: string;
+          montant: number;
+          moyen: MoyenPaiement;
+          reference_externe: string | null;
+          date_paiement: string;
+          statut: StatutPaiement;
+          recu_path: string | null;
+          saisi_par: string | null;
+          cree_le: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["paiements"]["Row"]> & {
+          proprietaire_id: string;
+          montant: number;
+          moyen: MoyenPaiement;
+        };
+        Update: Partial<Database["public"]["Tables"]["paiements"]["Row"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      generer_appels: {
+        Args: { p_periode_id: string };
+        Returns: number;
+      };
+    };
     Enums: {
       role_membre: RoleMembre;
       type_personne: TypePersonne;
       nature_detention: NatureDetention;
       periodicite: Periodicite;
+      statut_periode: StatutPeriode;
+      statut_appel: StatutAppel;
+      moyen_paiement: MoyenPaiement;
+      statut_paiement: StatutPaiement;
     };
   };
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Newsreader, Public_Sans } from "next/font/google";
+import { nom, baseline } from "@/lib/marque";
 import "./globals.css";
 
 const newsreader = Newsreader({
@@ -15,7 +16,7 @@ const publicSans = Public_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Syndic — gestion de copropriété",
+  title: `${nom} — ${baseline}`,
   description: "Plateforme de gestion de syndic multi-cabinet et multi-immeuble.",
 };
 

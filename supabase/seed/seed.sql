@@ -309,23 +309,52 @@ join (values
 join proprietaires p on p.nom = v.nom and p.immeuble_id = i.id;
 
 -- ---------------------------------------------------------------------
+-- Exercice et période en cours — postes encore à zéro, à chiffrer via
+-- l'écran Budget (docs/06-decisions.md, question ouverte n°4 : les
+-- montants réels ne sont pas connus). L'échéance se lit sur le règlement
+-- en vigueur (jour_exigibilite), pas sur une valeur inventée ici.
+-- ---------------------------------------------------------------------
+insert into exercices (immeuble_id, libelle, date_debut, date_fin)
+select i.id, 'Exercice 2026', date '2026-01-01', date '2026-12-31'
+from immeubles i where i.nom = 'Mamelles Tower';
+
+insert into periodes (exercice_id, libelle, date_debut, date_fin, date_echeance, statut)
+select e.id, '4e trimestre 2026', date '2026-10-01', date '2026-12-31',
+       (date '2026-10-01' + ((r.jour_exigibilite - 1) || ' days')::interval)::date,
+       'brouillon'
+from exercices e
+join immeubles i on i.id = e.immeuble_id and i.nom = 'Mamelles Tower'
+join reglements r on r.immeuble_id = i.id and r.en_vigueur
+where e.libelle = 'Exercice 2026';
+
+insert into budget_lignes (periode_id, poste_charge_id, montant)
+select per.id, pc.id, 0
+from periodes per
+join exercices e on e.id = per.exercice_id
+join immeubles i on i.id = e.immeuble_id and i.nom = 'Mamelles Tower'
+join postes_charges pc on pc.immeuble_id = i.id
+where per.libelle = '4e trimestre 2026';
+
+-- ---------------------------------------------------------------------
 -- Contrôles — le chargement échoue plutôt que de laisser passer un écart
 -- ---------------------------------------------------------------------
 do $$
-declare v_lots int; v_tant int; v_liens int; v_props int; v_anom int;
+declare v_lots int; v_tant int; v_liens int; v_props int; v_anom int; v_budget int;
 begin
   select count(*), sum(tantiemes) into v_lots, v_tant from lots;
   select count(*) into v_liens from lot_proprietaires;
   select count(*) into v_props from proprietaires where est_groupe = false;
   select count(*) into v_anom  from proprietaires
    where est_groupe = false and (email is null or telephone is null or email not like '%@%');
+  select count(*) into v_budget from budget_lignes;
   assert v_lots  = 62,    format('Attendu 62 lots, obtenu %s', v_lots);
   assert v_tant  = 10000, format('Attendu 10 000 tantièmes, obtenu %s', v_tant);
   assert v_liens = 62,    format('Attendu 62 rattachements, obtenu %s', v_liens);
   assert v_props = 21,    format('Attendu 21 entités distinctes, obtenu %s', v_props);
   assert v_anom  = 4,     format('Attendu 4 anomalies de contact, obtenu %s', v_anom);
-  raise notice 'Chargé : % lots, % tantièmes, % entités (19 comptes après regroupement), % anomalies',
-    v_lots, v_tant, v_props, v_anom;
+  assert v_budget = 11,   format('Attendu 11 lignes de budget (une par poste), obtenu %s', v_budget);
+  raise notice 'Chargé : % lots, % tantièmes, % entités (19 comptes après regroupement), % anomalies, % postes de budget',
+    v_lots, v_tant, v_props, v_anom, v_budget;
 end $$;
 
 commit;

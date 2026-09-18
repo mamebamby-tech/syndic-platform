@@ -1,0 +1,22 @@
+-- =====================================================================
+-- Autorise le rôle "authenticated" à utiliser le schéma "app".
+--
+-- Sans cette permission, tout appel à une fonction app.* déclenché
+-- lazily — au premier passage d'une instruction PL/pgSQL dans une session
+-- donnée, sous les privilèges de l'appelant (SECURITY INVOKER) — échoue
+-- avec "permission denied for schema app". C'est le cas de
+-- public.generer_appels(), qui appelle app.generer_appels() et
+-- app.est_gestionnaire().
+--
+-- Les politiques RLS existantes, elles, appellent déjà des fonctions
+-- app.* (app.immeubles_de_lutilisateur, etc.) sans avoir jamais eu ce
+-- droit : ça fonctionne parce que l'expression d'une politique est
+-- résolue une fois pour toutes à sa création, par le rôle propriétaire.
+-- Un appel PL/pgSQL frais, lui, re-résout le nom au premier passage.
+--
+-- PostgREST n'expose que le schéma "public" : ce GRANT permet la
+-- composition interne (l'enveloppe publique appelant l'implémentation),
+-- il ne rend aucune fonction app.* atteignable depuis le client.
+-- =====================================================================
+
+grant usage on schema app to authenticated;

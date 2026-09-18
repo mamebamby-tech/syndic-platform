@@ -14,6 +14,9 @@
 | 8 | Charte dérivée de l'identité d'ENIGMA AFRICA | Les documents produits doivent ressembler à ceux du cabinet. |
 | 9 | Aucune donnée personnelle réelle dans Git | Le dépôt porte un jeu fictif de structure identique ; le registre réel vit dans `donnees-privees/`, non versionné. L'historique a été réécrit le 19/09/2026 pour l'en purger. |
 | 10 | Le nom du produit dans une constante unique | Il n'est pas arrêté et changera : le figer dans les composants coûterait une reprise complète. |
+| 11 | `periodes` et `budget_lignes` isolées par immeuble en RLS | Leur politique d'origine (`using (true)`) ne filtrait sur aucun périmètre — une fuite de données entre cabinets. Corrigé en branchant l'écran Budget, avant qu'un utilisateur réel ne l'atteigne. |
+| 12 | `app.generer_appels` exposée via une enveloppe `public.generer_appels` qui vérifie le périmètre | La fonction interne est `security definer` (elle doit pouvoir écrire pour tous les lots) : sans contrôle explicite, un utilisateur authentifié aurait pu générer les appels d'un immeuble qui n'est pas le sien. Le contrôle vit dans l'enveloppe, pas dans la fonction interne, pour que les tests et tâches serveur gardent un accès direct via une connexion Postgres. |
+| 13 | Une période « courante » implicite, pas de sélecteur | Un seul exercice existe pour Mamelles Tower : Budget et Appels de fonds opèrent sur la période la plus récente. |
 
 ## Questions ouvertes — ne pas y répondre à la place de l'utilisateur
 
@@ -69,6 +72,9 @@ toute mise en service, pas dans la base.
 | Page d'accueil publique | Les utilisateurs du pilote reçoivent un lien direct vers leur espace ; une vitrine ne leur sert à rien. | Le démarchage d'un cabinet tiers — et le choix du nom, dont elle dépend entièrement. |
 | Expéditeur de courriel réel (SMTP) | Le service intégré de Supabase est bridé à quelques messages par heure et destiné aux tests. | **Avant toute mise en service** : dès que les 19 copropriétaires doivent recevoir un appel de fonds ou un code de connexion. Prestataire à choisir (Resend, Postmark ou équivalent). |
 | Dépôt du règlement en PDF avec extraction des paramètres | Demande du travail et ne dispense jamais d'une validation humaine : une erreur de lecture se paierait en assemblée. | Le troisième immeuble, quand la saisie manuelle devient répétitive. Facturé comme prestation de démarrage, pas offert : c'est du conseil juridique outillé. |
+| Sélecteur de période sur Budget et Appels de fonds | Un seul exercice existe pour l'instant ; les deux écrans opèrent sur la période la plus récente. | Un deuxième trimestre chiffré pour Mamelles Tower. |
+| Enregistrement manuel des paiements | Le relevé consolidé affiche mouvements et solde à partir des appels ; passer un paiement depuis l'écran attend la session des encaissements. | Prochaine session : paiements manuels et en ligne. |
+| Envoi effectif des appels (WhatsApp, courriel) | L'écran Appels de fonds signale déjà les destinataires bloqués par une anomalie de contact, mais n'envoie rien : aucun expéditeur de courriel réel n'est branché (voir chantier ci-dessus). | Le choix d'un prestataire de courriel transactionnel et la question ouverte n°11 (WhatsApp). |
 
 ## Points de vigilance sur les données
 

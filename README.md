@@ -4,20 +4,26 @@ Gestion de copropriété multi-cabinet et multi-immeuble. Premier client :
 ENIGMA AFRICA SARL (Dakar) — immeuble Mamelles Tower, 62 lots, 19 comptes
 copropriétaires.
 
-**Avant d'écrire du code, lis [`CLAUDE.md`](CLAUDE.md).** Il fixe cinq règles
+**Avant d'écrire du code, lis [`CLAUDE.md`](CLAUDE.md).** Il fixe six règles
 dont la violation impose une réécriture.
 
 ## État du dépôt
 
-Le socle de données est écrit. L'application Next.js existe : connexion par
+Le socle de données est écrit. L'application Next.js couvre : connexion par
 code à usage unique, coquille de navigation avec sélecteur d'immeuble, registre
-des lots en lecture seule. Les appels de fonds restent à construire.
+des lots, budget d'une période avec clés de répartition éditables, génération
+et consultation des appels de fonds (avec aperçu du document nominatif), et
+relevé consolidé par propriétaire. L'encaissement des paiements et l'envoi
+effectif (WhatsApp, courriel) restent à construire — voir
+`docs/06-decisions.md`, « Chantiers différés ».
 
 - `supabase/migrations/` — schéma multi-tenant, sécurité par ligne, moteur de répartition
 - `supabase/seed/seed.sql` — Mamelles Tower : 62 lots, 21 entités, règlement paramétré
+- `donnees-privees/` — registre réel, non versionné (voir `docs/06-decisions.md`)
 - `docs/` — produit, modèle de données, règles métier, charte, écrans, décisions
 - `app/`, `components/`, `lib/` — l'application Next.js
-- `tests/` — tests du moteur de répartition, contre les fonctions SQL réelles
+- `tests/` — moteur de répartition, génération des appels, sécurité par ligne
+  multi-cabinet ; contre les fonctions SQL et la base réelles
 
 ## Mise en route
 
@@ -79,7 +85,7 @@ rôle) pour que le compte voie un immeuble — sinon la page d'accueil affiche
 ```bash
 npm run typecheck   # TypeScript strict
 npm run lint        # ESLint
-npm test            # tests du moteur de répartition, contre la base réelle
+npm test            # répartition, génération des appels, RLS — contre la base réelle
 npm run types:db    # régénère lib/types/database.ts depuis le schéma (Docker requis)
 ```
 

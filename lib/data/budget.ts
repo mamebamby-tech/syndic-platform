@@ -1,0 +1,101 @@
+import "server-only";
+import { creerClientServeur } from "@/lib/supabase/server";
+
+export interface CleRepartitionOption {
+  id: string;
+  code: string;
+  libelle: string;
+}
+
+export interface LignePoste {
+  posteId: string;
+  libelle: string;
+  categorie: string;
+  ordre: number;
+  cleRepartitionId: string;
+  fournisseur: string;
+  montant: number;
+  note: string;
+  aZero: boolean;
+}
+
+export interface BudgetPeriode {
+  lignes: LignePoste[];
+  cles: CleRepartitionOption[];
+  totalGeneral: number;
+  totauxParCategorie: { categorie: string; total: number }[];
+  nombrePostesAZero: number;
+}
+
+export async function chargerBudget(
+  immeubleId: string,
+  periodeId: string,
+): Promise<BudgetPeriode> {
+  const supabase = await creerClientServeur();
+
+  const [{ data: postes, error: erreurPostes }, { data: cles, error: erreurCles }, { data: budgetLignes, error: erreurBudget }] =
+    await Promise.all([
+      supabase
+        .from("postes_charges")
+        .select("id, libelle, categorie, ordre, cle_repartition_id")
+        .eq("immeuble_id", immeubleId)
+        .order("ordre"),
+      supabase
+        .from("cles_repartition")
+        .select("id, code, libelle")
+        .eq("immeuble_id", immeubleId)
+        .order("libelle"),
+      supabase
+        .from("budget_lignes")
+        .select("poste_charge_id, montant, fournisseur, note")
+        .eq("periode_id", periodeId),
+    ]);
+
+  if (erreurPostes) {
+    throw new Error(`Lecture des postes de charges impossible : ${erreurPostes.message}`);
+  }
+  if (erreurCles) {
+    throw new Error(`Lecture des clés de répartition impossible : ${erreurCles.message}`);
+  }
+  if (erreurBudget) {
+    throw new Error(`Lecture du budget impossible : ${erreurBudget.message}`);
+  }
+
+  const budgetParPoste = new Map(
+    (budgetLignes ?? []).map((ligne) => [ligne.poste_charge_id, ligne]),
+  );
+
+  const lignes: LignePoste[] = (postes ?? []).map((poste) => {
+    const ligneBudget = budgetParPoste.get(poste.id);
+    const montant = ligneBudget?.montant ?? 0;
+    return {
+      posteId: poste.id,
+      libelle: poste.libelle,
+      categorie: poste.categorie,
+      ordre: poste.ordre,
+      cleRepartitionId: poste.cle_repartition_id,
+      fournisseur: ligneBudget?.fournisseur ?? "",
+      montant,
+      note: ligneBudget?.note ?? "",
+      aZero: montant === 0,
+    };
+  });
+
+  const totauxParCategorieMap = new Map<string, number>();
+  for (const ligne of lignes) {
+    totauxParCategorieMap.set(
+      ligne.categorie,
+      (totauxParCategorieMap.get(ligne.categorie) ?? 0) + ligne.montant,
+    );
+  }
+
+  return {
+    lignes,
+    cles: cles ?? [],
+    totalGeneral: lignes.reduce((total, ligne) => total + ligne.montant, 0),
+    totauxParCategorie: Array.from(totauxParCategorieMap.entries()).map(
+      ([categorie, total]) => ({ categorie, total }),
+    ),
+    nombrePostesAZero: lignes.filter((ligne) => ligne.aZero).length,
+  };
+}

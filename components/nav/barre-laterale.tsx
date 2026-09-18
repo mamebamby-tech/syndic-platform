@@ -25,6 +25,8 @@ export function BarreLaterale({
         <LienNav href={`/immeubles/${immeubleActuelId}/lots`}>
           Registre des lots
         </LienNav>
+        <LienNav href={`/immeubles/${immeubleActuelId}/budget`}>Budget</LienNav>
+        <LienNav href={`/immeubles/${immeubleActuelId}/appels`}>Appels de fonds</LienNav>
       </nav>
 
       <form action={seDeconnecter} className="border-t border-filet p-3">
