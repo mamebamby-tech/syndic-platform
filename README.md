@@ -9,11 +9,15 @@ dont la violation impose une réécriture.
 
 ## État du dépôt
 
-Le socle de données est écrit ; l'application ne l'est pas encore.
+Le socle de données est écrit. L'application Next.js existe : connexion par
+code à usage unique, coquille de navigation avec sélecteur d'immeuble, registre
+des lots en lecture seule. Les appels de fonds restent à construire.
 
 - `supabase/migrations/` — schéma multi-tenant, sécurité par ligne, moteur de répartition
 - `supabase/seed/seed.sql` — Mamelles Tower : 62 lots, 21 entités, règlement paramétré
 - `docs/` — produit, modèle de données, règles métier, charte, écrans, décisions
+- `app/`, `components/`, `lib/` — l'application Next.js
+- `tests/` — tests du moteur de répartition, contre les fonctions SQL réelles
 
 ## Mise en route
 
@@ -59,17 +63,25 @@ cp .env.example .env.local
 Puis renseigne les valeurs depuis *Project Settings → API* dans Supabase.
 `.env.local` n'est jamais versionné.
 
-### 6. Lancer Claude Code
+### 6. Lancer l'application
 
 ```bash
-claude
+npm install
+npm run dev
 ```
 
-Il lit `CLAUDE.md` automatiquement. Première demande suggérée :
+Sur `http://localhost:3000`, la connexion redirige vers `/login` tant
+qu'aucune session n'est ouverte. Après une première connexion par code à
+usage unique, il faut une ligne dans `membres` (organisation_id, user_id,
+rôle) pour que le compte voie un immeuble — sinon la page d'accueil affiche
+« Aucun immeuble accessible ».
 
-> Crée l'application Next.js selon CLAUDE.md : App Router, TypeScript strict,
-> Tailwind avec les jetons de docs/04-charte.md, connexion Supabase, et
-> l'authentification par code à usage unique. Ne code aucune règle du règlement.
+```bash
+npm run typecheck   # TypeScript strict
+npm run lint        # ESLint
+npm test            # tests du moteur de répartition, contre la base réelle
+npm run types:db    # régénère lib/types/database.ts depuis le schéma (Docker requis)
+```
 
 ## Conventions
 

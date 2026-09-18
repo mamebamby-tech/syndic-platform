@@ -23,3 +23,6 @@ coverage/
 /donnees-privees/
 *.xlsx
 !supabase/seed/*.sql
+
+# Fichiers temporaires du CLI Supabase
+supabase/.temp/
