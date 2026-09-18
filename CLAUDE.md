@@ -83,6 +83,13 @@ Aucune valeur hexadécimale dans un composant. Tout passe par les jetons défini
 dans `docs/04-charte.md` et la configuration Tailwind. Changer l'accent doit
 rester une modification d'une ligne.
 
+### 6. Le nom du produit n'est pas arrêté
+
+Il vivra dans une seule constante — `lib/marque.ts`, exportant `nom`,
+`nomCourt` et `baseline`. Ne l'écris jamais en dur dans un composant, un
+gabarit de courriel ou un document PDF. Le renommer doit rester une
+modification d'une seule ligne.
+
 ## Pile technique
 
 | | |
