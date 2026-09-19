@@ -187,10 +187,10 @@
     "appel_emis": {
       "email": {
         "sujet": "Appel de fonds {reference} — {periode}",
-        "corps": "Bonjour,\n\nVotre appel de fonds {reference} pour la période {periode} est disponible.\n\nMontant appelé : {montant, number, xof}\nÉchéance : {echeance, date, date}\n\n{cabinet}"
+        "corps": "Bonjour,\n\nVotre appel de fonds {reference} pour la période {periode} est disponible.\n\nMontant appelé : {montant, number, xof}\nÉchéance : {echeance, date, dateJuridique}\n\n{cabinet}"
       },
       "whatsapp": {
-        "corps": "{cabinet} : votre appel de fonds {reference} ({periode}) est disponible. Montant : {montant, number, xof}, échéance le {echeance, date, date}."
+        "corps": "{cabinet} : votre appel de fonds {reference} ({periode}) est disponible. Montant : {montant, number, xof}, échéance le {echeance, date, dateJuridique}."
       }
     }
   }

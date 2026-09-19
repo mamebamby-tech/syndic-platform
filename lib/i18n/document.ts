@@ -1,6 +1,6 @@
 import { createFormatter, createTranslator } from "next-intl";
 import { formats, FUSEAU } from "@/i18n/formats";
-import { LANGUE_OPPOSABLE, type Langue } from "@/lib/i18n/config";
+import { LANGUE_OPPOSABLE, localeDe, type Langue } from "@/lib/i18n/config";
 import type { Messages } from "@/lib/i18n/messages";
 
 // Documents juridiques — appel de cotisation, convocation, procès-verbal.
@@ -40,7 +40,7 @@ export interface DocumentLocalise {
 // fournisseur de la personne connectée.
 export function outilsDocument({ version, messages }: DocumentLocalise) {
   const t = createTranslator({
-    locale: version.langue,
+    locale: localeDe(version.langue),
     // Seul l'espace `Documents` est transmis au navigateur.
     messages: { Documents: messages } as unknown as Messages,
     formats,
@@ -48,7 +48,7 @@ export function outilsDocument({ version, messages }: DocumentLocalise) {
     namespace: "Documents",
   });
   const format = createFormatter({
-    locale: version.langue,
+    locale: localeDe(version.langue),
     formats,
     timeZone: FUSEAU,
   });

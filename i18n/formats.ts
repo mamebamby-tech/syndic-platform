@@ -23,7 +23,14 @@ export const formats = {
     },
   },
   dateTime: {
-    date: { day: "2-digit", month: "2-digit", year: "numeric" },
+    // Toute date affichée aujourd'hui est à portée juridique ou financière
+    // (échéance, mouvement, et demain convocation, séance) : le mois est
+    // TOUJOURS en toutes lettres — « 1 October 2026 », « 1 octobre 2026 » —
+    // jamais en chiffres, qui se lisent différemment d'un pays à l'autre.
+    // C'est volontairement le seul format de date : ajouter une variante
+    // numérique rouvrirait la porte à l'ambiguïté (tests/i18n.test.ts scrute
+    // le code source pour l'empêcher).
+    dateJuridique: { day: "numeric", month: "long", year: "numeric" },
   },
 } satisfies Formats;
 

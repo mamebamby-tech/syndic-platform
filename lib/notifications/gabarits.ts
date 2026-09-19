@@ -1,6 +1,6 @@
 import { createTranslator } from "next-intl";
 import { formats, FUSEAU } from "@/i18n/formats";
-import { normaliserLangue } from "@/lib/i18n/config";
+import { localeDe, normaliserLangue } from "@/lib/i18n/config";
 import { chargerMessages } from "@/lib/i18n/messages";
 
 // Gabarits de notification (courriel, WhatsApp). La langue est celle du
@@ -35,10 +35,29 @@ export type DemandeNotification = {
   chargeUtile: ChargeUtileAppelEmis;
 };
 
+// BROUILLON — gabarits dont le texte n'a pas été relu et validé par le cabinet.
+//
+// `appel_emis` (messages/fr.json, `Notifications.appel_emis`) est une
+// rédaction provisoire de l'implémentation : ni le ton, ni les mentions, ni
+// la formule d'adresse ne sont ceux du cabinet, et un appel de fonds est un
+// document à valeur juridique. Il sera relu par le cabinet avant tout envoi
+// réel. Tant qu'il figure ici, `rendreNotification` le signale par
+// `brouillon: true` : l'expéditeur (à écrire, voir « Envoi effectif » dans
+// docs/06-decisions.md) doit refuser d'envoyer un brouillon à un
+// destinataire réel.
+//
+// Le retirer de cette liste est le geste qui consigne la validation du
+// cabinet ; ne le faire qu'après relecture, pas pour « débloquer » un envoi.
+export const GABARITS_BROUILLON: ReadonlySet<DemandeNotification["gabarit"]> = new Set([
+  "appel_emis",
+]);
+
 export interface NotificationRendue {
   // Objet du courriel ; absent pour WhatsApp.
   sujet?: string;
   corps: string;
+  // Vrai tant que le texte du gabarit n'a pas été validé par le cabinet.
+  brouillon: boolean;
 }
 
 export async function rendreNotification(
@@ -46,11 +65,12 @@ export async function rendreNotification(
 ): Promise<NotificationRendue> {
   const langue = normaliserLangue(demande.langue);
   const messages = await chargerMessages(langue);
+  const brouillon = GABARITS_BROUILLON.has(demande.gabarit);
 
   switch (demande.gabarit) {
     case "appel_emis": {
       const t = createTranslator({
-        locale: langue,
+        locale: localeDe(langue),
         messages,
         formats,
         timeZone: FUSEAU,
@@ -62,8 +82,8 @@ export async function rendreNotification(
       };
 
       return demande.canal === "email"
-        ? { sujet: t("email.sujet", valeurs), corps: t("email.corps", valeurs) }
-        : { corps: t("whatsapp.corps", valeurs) };
+        ? { sujet: t("email.sujet", valeurs), corps: t("email.corps", valeurs), brouillon }
+        : { corps: t("whatsapp.corps", valeurs), brouillon };
     }
   }
 }

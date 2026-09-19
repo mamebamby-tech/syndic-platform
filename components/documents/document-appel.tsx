@@ -53,7 +53,7 @@ export function DocumentAppel({
         <dd className="text-encre">{appel.proprietaireNom}</dd>
         <dt className="text-encre-3">{t("Appel.echeance")}</dt>
         <dd className="tabular-nums text-encre">
-          {format.dateTime(new Date(appel.dateEcheance), "date")}
+          {format.dateTime(new Date(appel.dateEcheance), "dateJuridique")}
         </dd>
         {appel.reportAnterieur !== 0 && (
           <>

@@ -94,11 +94,21 @@ Règles qui en découlent :
 
 Ce ne sont pas des termes mais elles conditionnent l'affichage :
 
-- **Variante régionale.** La locale `en` n'est pas une région. Sans choix, les
-  dates s'affichent au format américain (mois/jour/année) : un lecteur d'Afrique
-  de l'Ouest ou d'Europe lira `10/01/2026` comme le 10 janvier, alors que
-  l'échéance est le 1er octobre. À trancher avant la première traduction : une
-  variante régionale dédiée, ou un format de date sans ambiguïté.
+- **Variante régionale — arrêtée (19/09/2026) : `en-GB`.** Le code de langue
+  stocké reste `en` (`membres.langue`, `messages/en.json`) ; la locale de
+  formatage est `en-GB` (`LOCALES` dans `lib/i18n/config.ts`). L'anglais sans
+  région formaterait à l'américaine : `10/01/2026` se lit le 10 janvier en
+  Amérique et le 1er octobre partout ailleurs.
+- **Dates juridiques et financières — arrêté (19/09/2026) : mois en toutes
+  lettres, jamais en chiffres.** Échéance, mouvement, convocation, séance :
+  « 1 October 2026 », « 1 octobre 2026 ». Un seul format de date existe
+  (`dateJuridique`, `i18n/formats.ts`) et un test scrute le code pour qu'aucune
+  date numérique ne s'y glisse. La règle vaut dans toutes les langues, français
+  compris.
+  *Point de typographie ouvert :* en français juridique on écrit « 1er octobre
+  2026 » ; `Intl` produit « 1 octobre 2026 ». Le sens est le même et aucune
+  ambiguïté n'existe ; corriger le « er » demande un traitement dédié du premier
+  du mois dans le document opposable.
 - **Devise.** XOF dans toutes les langues, affichée par son code ISO, sans
   conversion (`i18n/formats.ts`). Ne pas traduire le nom de la monnaie dans le
   corps des documents.

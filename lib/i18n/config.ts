@@ -7,6 +7,19 @@ export type Langue = (typeof LANGUES)[number];
 
 export const LANGUE_PAR_DEFAUT: Langue = "fr";
 
+// Locale de FORMATAGE (nombres, dates) de chaque langue. Le code de langue
+// (`membres.langue`, `messages/<code>.json`) reste sur deux lettres ; la
+// locale, elle, porte la région quand elle change ce qu'on lit :
+// l'anglais sans région formaterait les dates à l'américaine, et un
+// `10/01/2026` se lit le 10 janvier en Amérique, le 1er octobre partout
+// ailleurs. L'anglais est donc l'anglais britannique.
+export const LOCALES = { fr: "fr", en: "en-GB" } as const satisfies Record<Langue, string>;
+export type Locale = (typeof LOCALES)[Langue];
+
+export function localeDe(langue: Langue): Locale {
+  return LOCALES[langue];
+}
+
 // Langue de la seule version opposable des documents juridiques (appel de
 // cotisation, convocation, procès-verbal). Indépendante de la langue de la
 // personne qui les consulte : voir lib/i18n/document.ts.

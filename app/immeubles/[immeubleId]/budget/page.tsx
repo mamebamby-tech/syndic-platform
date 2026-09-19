@@ -43,7 +43,7 @@ export default async function PageBudget({
           <p className="mt-1 text-sm text-encre-2">
             {t("exerciceEcheance", {
               exercice: periode.exerciceLibelle,
-              echeance: format.dateTime(new Date(periode.dateEcheance), "date"),
+              echeance: format.dateTime(new Date(periode.dateEcheance), "dateJuridique"),
             })}
             {budget.nombrePostesAZero > 0 && (
               <>

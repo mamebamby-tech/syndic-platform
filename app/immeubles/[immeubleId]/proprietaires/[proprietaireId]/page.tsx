@@ -121,7 +121,7 @@ export default async function PageReleveProprietaire({
                 {releve.mouvements.map((mouvement, index) => (
                   <tr key={index} className="border-b border-filet last:border-0">
                     <td className="px-4 py-3 tabular-nums text-encre-2">
-                      {format.dateTime(new Date(mouvement.date), "date")}
+                      {format.dateTime(new Date(mouvement.date), "dateJuridique")}
                     </td>
                     <td className="px-4 py-3 text-encre">
                       {mouvement.type === "appel"

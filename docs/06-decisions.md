@@ -25,6 +25,7 @@
 | 19 | La devise reste XOF, affichée par son code ISO, dans toutes les langues | Aucune conversion. « F CFA » et « CFA » selon la langue prêteraient à confusion dans un document comptable. Les montants sont formatés par locale (séparateurs, position du code), pas convertis. |
 | 20 | `next-intl` sans routage ; le navigateur ne reçoit que les espaces de noms des composants clients | Connexions lentes : les textes des documents et des gabarits de notification restent côté serveur. Le glossaire (`docs/07-glossaire.md`) doit être arrêté avant toute traduction. |
 | 21 | « Charges communes » est le total du budget et inclut les ascenseurs ; « général » et « ascenseur » sont des catégories de suivi qui le décomposent | Le règlement (art. 15) range les ascenseurs parmi les charges communes. L'écran disait « Total général », « Total charges générales » et « Total ascenseurs », ce qui les présentait comme trois choses de même rang. Voir `docs/07-glossaire.md`. |
+| 22 | L'anglais se formate en `en-GB` ; toute date juridique ou financière s'écrit avec le mois en toutes lettres | `10/01/2026` se lit le 10 janvier ou le 1er octobre selon le lecteur : inacceptable pour une échéance. Un seul format de date (`dateJuridique`), gardé par un test sur le code source. Le code de langue en base reste `en`. |
 
 ## Questions ouvertes — ne pas y répondre à la place de l'utilisateur
 
@@ -86,9 +87,8 @@ toute mise en service, pas dans la base.
 | Traduction (`messages/en.json`) | Le glossaire n'est pas arrêté : traduire avant, c'est inventer des synonymes juridiques. | Les huit termes de `docs/07-glossaire.md` arrêtés par le cabinet, avec un juriste. |
 | Version de courtoisie des documents | Demande l'anglais validé et une relecture juridique de la mention de non-opposabilité. La place est prévue (`versionDocument`, `Documents.mentions.courtoisie`). | La traduction et le glossaire ci-dessus. |
 | Modèles WhatsApp par langue | Meta pré-approuve un modèle par langue ; une correction repasse par l'approbation. | L'envoi effectif (voir ci-dessous) et le glossaire. |
-| Variante régionale de l'anglais | `en` sans région formate les dates en mois/jour/année : `10/01/2026` se lirait comme le 10 janvier au lieu du 1er octobre. | La première traduction. Voir `docs/07-glossaire.md`. |
 | Slogan du produit (`baseline`) traduisible | Il vit dans `lib/marque.ts` (règle n°6) et n'est lu que par le titre de page ; il reste en français tant que le nom n'est pas arrêté. | Le choix du nom du produit. |
-| Envoi effectif des appels (WhatsApp, courriel) | L'écran Appels de fonds signale déjà les destinataires bloqués par une anomalie de contact, mais n'envoie rien : aucun expéditeur de courriel réel n'est branché (voir chantier ci-dessus). | Le choix d'un prestataire de courriel transactionnel et la question ouverte n°11 (WhatsApp). |
+| Envoi effectif des appels (WhatsApp, courriel) | **Le gabarit `appel_emis` est un brouillon** (`GABARITS_BROUILLON`, `lib/notifications/gabarits.ts`) : son texte doit être relu par le cabinet, et l'expéditeur devra refuser d'envoyer un brouillon à un destinataire réel. L'écran Appels de fonds signale déjà les destinataires bloqués par une anomalie de contact, mais n'envoie rien : aucun expéditeur de courriel réel n'est branché (voir chantier ci-dessus). | Le choix d'un prestataire de courriel transactionnel et la question ouverte n°11 (WhatsApp). |
 
 ## Points de vigilance sur les données
 
