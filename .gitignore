@@ -26,3 +26,6 @@ coverage/
 
 # Fichiers temporaires du CLI Supabase
 supabase/.temp/
+
+# Clés de la base RÉELLE (jamais chargé par Next.js, jamais utilisé en local).
+.env.reel

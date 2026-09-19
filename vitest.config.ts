@@ -8,6 +8,11 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // Garde-fou : refuse de démarrer si la base n'est pas le jeu fictif. Déclaré
+    // ICI pour qu'aucun fichier de test ne puisse l'oublier ; tests/pg.ts le
+    // re-vérifie à chaque connexion, et tests/garde-environnement.test.ts
+    // échoue si l'un ou l'autre disparaît.
+    globalSetup: ["./tests/global-setup.ts"],
     setupFiles: ["./tests/charger-env.ts"],
     testTimeout: 30_000,
     // Ces tests sont des tests d'intégration contre une base Postgres
