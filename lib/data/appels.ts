@@ -7,6 +7,7 @@ import {
   type EtatEnvoi,
 } from "@/lib/data/anomalie-contact";
 import type { MoyenPaiement, StatutAppel } from "@/lib/types/database";
+import { appelDepuisInstantane, lireInstantane } from "@/lib/appels/instantane";
 
 export interface LigneAppelDetail {
   lotNumero: number;
@@ -28,6 +29,9 @@ export interface AppelDetail {
   // Anomalies de contact (détail) et état d'envoi qui en découle, par canal.
   anomalies: AnomalieContact[];
   envoi: EtatEnvoi;
+  // Non nul pour un appel ÉMIS : le document se rend depuis cet instantané, pas
+  // depuis le contexte courant de la période (voir lib/appels/instantane.ts).
+  contexteEmis: ContexteDocument | null;
   lignes: LigneAppelDetail[];
 }
 
@@ -96,7 +100,7 @@ export async function listerAppelsDeLaPeriode(
       supabase
         .from("appels")
         .select(
-          "id, reference, statut, montant_total, report_anterieur, date_echeance, date_emission, proprietaire_id",
+          "id, reference, statut, montant_total, report_anterieur, date_echeance, date_emission, proprietaire_id, instantane",
         )
         .eq("periode_id", periodeId)
         .order("reference"),
@@ -204,7 +208,7 @@ export async function listerAppelsDeLaPeriode(
 
   const appelsDetail: AppelDetail[] = (appels ?? []).map((appel) => {
     const proprietaire = proprietaireParId.get(appel.proprietaire_id);
-    return {
+    const vivant: AppelDetail = {
       id: appel.id,
       reference: appel.reference,
       statut: appel.statut,
@@ -217,7 +221,15 @@ export async function listerAppelsDeLaPeriode(
       anomalies: proprietaire ? anomaliesContact(proprietaire) : [],
       envoi: proprietaire ? etatEnvoi(proprietaire) : "injoignable",
       lignes: (lignesParAppel.get(appel.id) ?? []).sort((a, b) => a.lotNumero - b.lotNumero),
+      contexteEmis: null,
     };
+
+    // Appel émis : le document ne se rend QUE depuis son instantané. Un
+    // instantané illisible fait échouer le chargement — jamais de repli sur
+    // les données courantes.
+    return appel.instantane === null
+      ? vivant
+      : appelDepuisInstantane(lireInstantane(appel.instantane), vivant);
   });
 
   return { appels: appelsDetail, contexte };

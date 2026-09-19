@@ -320,6 +320,8 @@ export interface Database {
           proprietaire_id: string;
           reference: string;
           numero: number | null;
+          // Copie figée du document, prise à l'émission ; null tant que brouillon.
+          instantane: unknown;
           montant_total: number;
           report_anterieur: number;
           date_emission: string | null;

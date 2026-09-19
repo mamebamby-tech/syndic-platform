@@ -35,6 +35,7 @@ const appel: AppelDetail = {
   proprietaireNom: "Propriétaire de test",
   anomalies: [],
   envoi: "pret",
+  contexteEmis: null,
   lignes: [{ lotNumero: 48, posteLibelle: "Charges générales", baseCalcul: 120, montant: 1234567 }],
 };
 

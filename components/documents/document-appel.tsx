@@ -51,6 +51,12 @@ export function DocumentAppel({
         <dd className="tabular-nums text-encre">{appel.reference}</dd>
         <dt className="text-encre-3">{t("Appel.destinataire")}</dt>
         <dd className="text-encre">{appel.proprietaireNom}</dd>
+        {appel.dateEmission && (
+          <>
+            <dt className="text-encre-3">{t("Appel.emisLe")}</dt>
+            <dd className="tabular-nums text-encre">{valeurs.dateJuridique(appel.dateEmission)}</dd>
+          </>
+        )}
         <dt className="text-encre-3">{t("Appel.echeance")}</dt>
         <dd className="tabular-nums text-encre">{valeurs.dateJuridique(appel.dateEcheance)}</dd>
         {appel.reportAnterieur !== 0 && (

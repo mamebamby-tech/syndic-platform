@@ -90,6 +90,19 @@ base :
 Le format de la référence (`code_reference`, `format_reference_appel`) est tracé
 aussi, sous une autre action (`format_reference_modifie`), sans alerte.
 
+### Un appel émis est figé
+
+`appels.instantane` : copie de tout ce que le document affiche, prise par la base
+au passage de brouillon à émis (référence, dates, destinataire, lignes, montants,
+identité du cabinet, coordonnées bancaires, moyens, numéros marchands). Le
+document d'un appel émis se rend **exclusivement** depuis cette copie
+(`lib/appels/instantane.ts`, lecture stricte). Un appel émis ne se modifie plus
+— ni ses lignes, ni sa suppression — sauf son **statut**, qui suit les paiements
+(émis → partiel → soldé) ou va à annulé ; jamais de retour à brouillon. Corriger
+un appel émis = l'annuler et en émettre un autre : l'unicité est donc partielle
+(un seul appel *actif* par destinataire et par période). Régénérer une période
+ne touche jamais un appel émis.
+
 ### Une organisation garde toujours un `proprietaire_org`
 
 Sans lui, plus personne ne peut administrer les membres. Un déclencheur sur

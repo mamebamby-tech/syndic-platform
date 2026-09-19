@@ -139,6 +139,19 @@ describe("intégration — base Mamelles Tower", () => {
   describe("app.generer_appels — génération d'une période", () => {
     let exerciceId: string;
     let periodeId: string;
+    // Réglages LUS, jamais supposés : syndic-dev se manipule depuis l'écran
+    // Paramètres, le code de référence n'est donc pas forcément celui du seed.
+    let codeImmeuble: string;
+    let formatReference: string;
+
+    // Coordonnées vides, DANS la transaction du test (annulée ensuite) : on ne
+    // suppose pas l'état du seed, et on n'écrase pas les réglages de la base.
+    const viderCoordonnees = () =>
+      client.query(
+        `update immeubles set compte_titulaire = null, compte_banque = null, compte_numero = null,
+           compte_bic = null, moyens_paiement_acceptes = '{}', numeros_marchands = '{}' where id = $1`,
+        [immeubleId],
+      );
     let posteIds: string[];
     const montantsTest = [450_000.0, 275_500.5, 89_999.99];
 
@@ -179,6 +192,13 @@ describe("intégration — base Mamelles Tower", () => {
       }
 
       await client.query(`select app.generer_appels($1)`, [periodeId]);
+
+      const reglages = await client.query<{ code_reference: string; format_reference_appel: string }>(
+        `select code_reference, format_reference_appel from immeubles where id = $1`,
+        [immeubleId],
+      );
+      codeImmeuble = reglages.rows[0]!.code_reference;
+      formatReference = reglages.rows[0]!.format_reference_appel;
     });
 
     afterAll(async () => {
@@ -290,7 +310,7 @@ describe("intégration — base Mamelles Tower", () => {
         );
         expect(rows.length).toBe(19);
         for (const { reference } of rows) {
-          expect(reference).toMatch(/^MT-2027T1-\d{3}$/);
+          expect(reference).toMatch(new RegExp(`^${codeImmeuble}-2027T1-\\d{3}$`));
           expect(reference).not.toMatch(/\s/);
           expect(reference.length).toBeLessThanOrEqual(16);
         }
@@ -304,8 +324,8 @@ describe("intégration — base Mamelles Tower", () => {
         // La période de test commence le 2027-01-01 : trimestriel, T1.
         rows.forEach((ligne, index) => {
           expect(ligne.reference).toBe(
-            rendreReference("{code}-{annee}{periode}-{seq}", {
-              code: "MT",
+            rendreReference(formatReference, {
+              code: codeImmeuble,
               annee: 2027,
               periode: codePeriode("trimestriel", 1),
               seq: index + 1,
@@ -321,8 +341,8 @@ describe("intégration — base Mamelles Tower", () => {
         );
         expect(new Set(rows.map((r) => r.reference)).size).toBe(rows.length);
         expect(rows.map((r) => r.numero)).toEqual(rows.map((_, i) => i + 1));
-        expect(rows[0]!.reference).toBe("MT-2027T1-001");
-        expect(rows.at(-1)!.reference).toBe("MT-2027T1-019");
+        expect(rows[0]!.reference).toBe(`${codeImmeuble}-2027T1-001`);
+        expect(rows.at(-1)!.reference).toBe(`${codeImmeuble}-2027T1-019`);
       });
 
       it("la base refuse deux appels de même référence dans une période, et une référence avec espace", async () => {
@@ -453,15 +473,10 @@ describe("intégration — base Mamelles Tower", () => {
       const emettre = (id: string) =>
         client.query(`update appels set statut = 'emis' where id = $1`, [id]);
 
-      it("le seed n'a aucune coordonnée : l'émission est refusée", async () => {
-        const { rows } = await client.query<{ compte_numero: string | null }>(
-          `select compte_numero from immeubles where id = $1`,
-          [immeubleId],
-        );
-        expect(rows[0]!.compte_numero).toBeNull();
-
+      it("sans coordonnées bancaires, l'émission est refusée", async () => {
         await client.query("begin");
         try {
+          await viderCoordonnees();
           const { rows: a } = await client.query<{ id: string }>(
             `select id from appels where periode_id = $1 limit 1`,
             [periodeId],
@@ -475,6 +490,7 @@ describe("intégration — base Mamelles Tower", () => {
       it("refuse aussi partiel et soldé, et l'insertion directe d'un appel émis", async () => {
         await client.query("begin");
         try {
+          await viderCoordonnees();
           const { rows: a } = await client.query<{
             id: string;
             periode_id: string;
@@ -502,7 +518,7 @@ describe("intégration — base Mamelles Tower", () => {
                values ($1, $2, 'MT-2027T1-900', $3, 'emis')`,
               [a[0]!.periode_id, a[0]!.proprietaire_id, a[0]!.date_echeance],
             ),
-          ).rejects.toThrow(/coordonnées bancaires/);
+          ).rejects.toThrow(/ne s'émet que depuis un brouillon/);
         } finally {
           await client.query("rollback");
         }
@@ -517,6 +533,7 @@ describe("intégration — base Mamelles Tower", () => {
         ]) {
           await client.query("begin");
           try {
+            await viderCoordonnees();
             await client.query(`update immeubles set ${partiel} where id = $1`, [immeubleId]);
             const { rows: a } = await client.query<{ id: string }>(
               `select id from appels where periode_id = $1 limit 1`,

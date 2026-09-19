@@ -109,7 +109,7 @@ export function ListeAppels({
       <div>
         {/* Avertissements de l'application, pas du document : ils suivent la
             langue de la personne, alors que le document reste opposable. */}
-        {contexte.compteSyndicat === null && (
+        {contexte.compteSyndicat === null && appelSelectionne?.statut === "brouillon" && (
           <p className="mb-4 rounded-control bg-alerte-doux px-3 py-2 text-sm text-alerte">
             {t("emissionBloquee")}
           </p>
@@ -131,7 +131,12 @@ export function ListeAppels({
           </p>
         )}
         {appelSelectionne && (
-          <DocumentAppel document={document} contexte={contexte} appel={appelSelectionne} />
+          // Appel émis : le document vient de SON instantané, jamais du contexte courant.
+          <DocumentAppel
+            document={document}
+            contexte={appelSelectionne.contexteEmis ?? contexte}
+            appel={appelSelectionne}
+          />
         )}
       </div>
     </div>

@@ -263,6 +263,7 @@
       "reference": "Référence",
       "destinataire": "Destinataire",
       "echeance": "Échéance",
+      "emisLe": "Émis le",
       "reportAnterieur": "Report antérieur",
       "colonnes": {
         "lot": "Lot",
