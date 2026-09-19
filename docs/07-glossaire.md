@@ -35,7 +35,43 @@ synonymes » — et la traduction est exactement le moment où l'on en invente.
 | **copropriété** | juridique | règlement de copropriété, « statut de la copropriété », « compte copropriétaire », libellé produit (`baseline` de `lib/marque.ts`) | Désigne à la fois le régime juridique, l'immeuble qui y est soumis et l'ensemble des copropriétaires. Les régimes de droit civil et de common law ne se recouvrent pas : le terme choisi doit rester fidèle au statut de la loi de 1988, pas à un régime voisin. Attention au dérivé : « copropriétaire » (personne) ≠ « propriétaire » (utilisé seul dans l'écran Appels de fonds). | *à arrêter* |
 | **assemblée générale** | juridique | écran validé « Assemblée générale », convocations, procès-verbaux, décisions du RCP, questions ouvertes | Les délais de convocation, le quorum et les majorités (`types_majorite`) sont attachés à ce terme : la traduction ne doit ni les changer ni les laisser croire différents. Distinguer l'assemblée ordinaire et extraordinaire (`type_assemblee`). | *à arrêter* |
 | **conseil syndical** | juridique | art. 28 du règlement (3 membres, 3 exercices), `conseil_syndical_membres`, faculté de convoquer en cas de carence | Organe de contrôle **élu par les copropriétaires**, distinct du syndic qu'il contrôle. Ne pas le traduire par un mot qui évoque un conseil d'administration ni un organe du cabinet. | *à arrêter* |
-| **charges communes** | juridique / comptable | art. 15 du règlement ; **l'interface dit « Charges générales »** (catégorie `general`) et « Ascenseurs » | **Écart de vocabulaire à résoudre en français d'abord** : le règlement dit « charges communes », l'interface « charges générales ». Ce ne sont pas forcément les mêmes : la catégorie `general` ne recouvre peut-être qu'une partie des charges communes (les ascenseurs en sont une autre, et l'art. 15 les range aussi parmi les charges communes). Décider le terme français, puis la structure des catégories, puis seulement traduire. | *à arrêter* |
+| **charges communes** | juridique / comptable | art. 15 du règlement ; total du budget (`Budget.totalChargesCommunes`) ; ventilation « dont charges générales », « dont ascenseurs » | **Français arrêté** (voir « Décisions arrêtées » ci-dessous) : c'est le terme du règlement, il **inclut** les ascenseurs. « Général » et « ascenseur » sont des catégories de suivi *à l'intérieur* des charges communes, pas des charges d'un autre rang. Pour l'anglais : le mot choisi doit couvrir les ascenseurs sans les opposer à un « général », et ne pas se limiter aux charges de fonctionnement courant. | *à arrêter* |
+
+## Décisions arrêtées
+
+Ce qui est tranché, avec la date, pour ne pas être rouvert à la traduction.
+
+### Charges communes (français) — 19/09/2026
+
+Le terme juridique est **« charges communes »** (art. 15 du règlement) et il
+**inclut les ascenseurs**. Les postes de dépense portent une *catégorie de
+suivi* — `general`, `ascenseur` — qui décompose les charges communes ; ce ne
+sont pas deux catégories de même rang, ni l'une « commune » et l'autre non.
+
+Dans l'interface (`Budget.*`) :
+
+| Élément | Libellé |
+|---|---|
+| Total du budget | **Charges communes** |
+| Sous-total `general` | dont charges générales |
+| Sous-total `ascenseur` | dont ascenseurs |
+| En-tête de la colonne des catégories | Catégorie de suivi |
+
+Règles qui en découlent :
+
+- Aucun libellé, message ou document ne doit laisser entendre que les charges
+  d'ascenseur ne sont pas des charges communes : pas de « charges communes *et*
+  ascenseurs », pas de « hors ascenseurs » sans le dire expressément.
+- Le total affiché est le total des charges communes ; il est présenté *avant*
+  ses « dont », pas après comme un « total général » qui les additionnerait.
+- Une catégorie de suivi inconnue s'affiche « dont {code} » : elle reste une
+  ventilation des charges communes.
+- Côté code, la somme de tous les postes s'appelle `totalChargesCommunes`
+  (`lib/data/budget.ts`) ; `general` et `ascenseur` restent des codes de
+  catégorie de suivi, pas des noms de charges.
+- Ce qui reste ouvert n'est pas le sens du terme mais la **clé de répartition
+  des ascenseurs** (question ouverte n° 7, `docs/06-decisions.md`) : ce sont des
+  charges communes dont la clé est contestée, pas des charges « à part ».
 
 ## Termes voisins repérés dans le dépôt
 

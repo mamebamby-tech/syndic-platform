@@ -140,24 +140,27 @@ export default async function PageBudget({
             ))}
           </tbody>
           <tfoot>
+            {/* Le total est celui des charges communes (art. 15 du règlement) ;
+                « général » et « ascenseur » sont des catégories de suivi qui
+                le décomposent, pas des charges d'un autre rang. */}
+            <tr className="border-t border-filet font-medium text-encre">
+              <td className="px-4 py-3" colSpan={4}>
+                {t("totalChargesCommunes")}
+              </td>
+              <td className="px-4 py-3 text-right tabular-nums">
+                {format.number(budget.totalChargesCommunes)}
+              </td>
+            </tr>
             {budget.totauxParCategorie.map(({ categorie, total }) => (
-              <tr key={categorie} className="border-t border-filet text-encre-2">
-                <td className="px-4 py-2" colSpan={4}>
+              <tr key={categorie} className="text-encre-2">
+                <td className="py-2 pl-8 pr-4" colSpan={4}>
                   {categorieConnue(categorie)
-                    ? t(`totalCategorie.${categorie}`)
-                    : t("totalCategorie.autre", { categorie })}
+                    ? t(`dontCategorie.${categorie}`)
+                    : t("dontCategorie.autre", { categorie })}
                 </td>
                 <td className="px-4 py-2 text-right tabular-nums">{format.number(total)}</td>
               </tr>
             ))}
-            <tr className="border-t border-filet font-medium text-encre">
-              <td className="px-4 py-3" colSpan={4}>
-                {t("totalGeneral")}
-              </td>
-              <td className="px-4 py-3 text-right tabular-nums">
-                {format.number(budget.totalGeneral)}
-              </td>
-            </tr>
           </tfoot>
         </table>
       </div>

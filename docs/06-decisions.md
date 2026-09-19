@@ -24,6 +24,7 @@
 | 18 | Une clé absente d'une langue s'affiche en français | Une traduction incomplète dégrade la lecture ; elle ne doit jamais casser ou vider un écran d'appel de fonds. |
 | 19 | La devise reste XOF, affichée par son code ISO, dans toutes les langues | Aucune conversion. « F CFA » et « CFA » selon la langue prêteraient à confusion dans un document comptable. Les montants sont formatés par locale (séparateurs, position du code), pas convertis. |
 | 20 | `next-intl` sans routage ; le navigateur ne reçoit que les espaces de noms des composants clients | Connexions lentes : les textes des documents et des gabarits de notification restent côté serveur. Le glossaire (`docs/07-glossaire.md`) doit être arrêté avant toute traduction. |
+| 21 | « Charges communes » est le total du budget et inclut les ascenseurs ; « général » et « ascenseur » sont des catégories de suivi qui le décomposent | Le règlement (art. 15) range les ascenseurs parmi les charges communes. L'écran disait « Total général », « Total charges générales » et « Total ascenseurs », ce qui les présentait comme trois choses de même rang. Voir `docs/07-glossaire.md`. |
 
 ## Questions ouvertes — ne pas y répondre à la place de l'utilisateur
 

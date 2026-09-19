@@ -22,7 +22,9 @@ export interface LignePoste {
 export interface BudgetPeriode {
   lignes: LignePoste[];
   cles: CleRepartitionOption[];
-  totalGeneral: number;
+  // Somme de tous les postes : les charges communes. Les totaux par
+  // catégorie de suivi (`general`, `ascenseur`) les décomposent.
+  totalChargesCommunes: number;
   totauxParCategorie: { categorie: string; total: number }[];
   nombrePostesAZero: number;
 }
@@ -92,7 +94,7 @@ export async function chargerBudget(
   return {
     lignes,
     cles: cles ?? [],
-    totalGeneral: lignes.reduce((total, ligne) => total + ligne.montant, 0),
+    totalChargesCommunes: lignes.reduce((total, ligne) => total + ligne.montant, 0),
     totauxParCategorie: Array.from(totauxParCategorieMap.entries()).map(
       ([categorie, total]) => ({ categorie, total }),
     ),

@@ -67,17 +67,17 @@
     "avertissementAscenseur": "La clé de répartition des charges d'ascenseur reste au règlement (tantièmes) : le rapport de gestion propose une pondération par étage, mais seule une assemblée à la majorité absolue peut trancher.",
     "colonnes": {
       "poste": "Poste",
-      "categorie": "Catégorie",
+      "categorie": "Catégorie de suivi",
       "fournisseur": "Fournisseur",
       "cleRepartition": "Clé de répartition",
       "montant": "Montant (XOF)"
     },
     "aZero": "à zéro",
-    "totalGeneral": "Total général",
-    "totalCategorie": {
-      "general": "Total charges générales",
-      "ascenseur": "Total ascenseurs",
-      "autre": "Total {categorie}"
+    "totalChargesCommunes": "Charges communes",
+    "dontCategorie": {
+      "general": "dont charges générales",
+      "ascenseur": "dont ascenseurs",
+      "autre": "dont {categorie}"
     },
     "enregistrer": "Enregistrer le budget",
     "categories": {
