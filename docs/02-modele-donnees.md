@@ -103,6 +103,16 @@ un appel émis = l'annuler et en émettre un autre : l'unicité est donc partiel
 (un seul appel *actif* par destinataire et par période). Régénérer une période
 ne touche jamais un appel émis.
 
+### Budget et appels : cohérence garantie par la base
+
+`appels.obsolete` est posé par déclencheur quand un montant de `budget_lignes` (ou
+la clé de répartition d'un poste) change après la génération ; la base refuse
+d'émettre un brouillon obsolète, et la régénération l'efface. Tant que des appels
+émis non annulés existent pour une période, ses lignes de budget sont
+verrouillées. Un utilisateur n'écrit dans `appels` que `statut` et
+`report_anterieur` (droits de colonne) : sinon l'indicateur se remettrait à faux à
+la main.
+
 ### Une organisation garde toujours un `proprietaire_org`
 
 Sans lui, plus personne ne peut administrer les membres. Un déclencheur sur

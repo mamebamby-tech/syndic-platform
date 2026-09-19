@@ -4,7 +4,8 @@ import { trouverPeriodeCourante } from "@/lib/data/periodes";
 import { chargerBudget } from "@/lib/data/budget";
 import { SelecteurCle } from "@/components/budget/selecteur-cle";
 import type { Messages } from "@/lib/i18n/messages";
-import { enregistrerBudget, genererAppels } from "./actions";
+import { BarreActionsBudget } from "@/components/budget/barre-actions-budget";
+import { enregistrerBudget } from "./actions";
 
 // Une catégorie sans libellé dans messages/*.json s'affiche sous son code :
 // les catégories viennent de la base, pas d'une liste figée dans le code.
@@ -36,6 +37,9 @@ export default async function PageBudget({
   const budget = await chargerBudget(immeubleId, periode.id);
   const aUnPosteAscenseur = budget.lignes.some((ligne) => ligne.categorie === "ascenseur");
   const posteIds = budget.lignes.map((ligne) => ligne.posteId).join(",");
+  // Change quand le budget enregistré change : la barre d'actions se remonte et
+  // recalcule ses « modifications non enregistrées » à partir des valeurs saisies.
+  const empreinte = budget.lignes.map((ligne) => `${ligne.montant}|${ligne.fournisseur}`).join(";");
 
   return (
     <div>
@@ -59,17 +63,20 @@ export default async function PageBudget({
           </p>
         </div>
 
-        <form action={genererAppels}>
-          <input type="hidden" name="immeubleId" value={immeubleId} />
-          <input type="hidden" name="periodeId" value={periode.id} />
-          <button
-            type="submit"
-            className="h-11 rounded-control bg-action px-4 text-sm text-white"
-          >
-            {t("genererAppels")}
-          </button>
-        </form>
+        <BarreActionsBudget key={empreinte} verrouille={budget.verrouille} />
       </header>
+
+      {budget.verrouille && (
+        <div role="status" className="mb-6 rounded-card border border-filet bg-surface px-4 py-3 text-sm text-encre-2">
+          {t("verrouille")}
+        </div>
+      )}
+
+      {budget.nombreBrouillonsObsoletes > 0 && (
+        <div role="alert" className="mb-6 rounded-card border border-alerte-doux bg-alerte-doux px-4 py-3 text-sm text-alerte">
+          {t("obsoletes", { nombre: budget.nombreBrouillonsObsoletes })}
+        </div>
+      )}
 
       {aUnPosteAscenseur && (
         <div className="mb-6 rounded-card border border-alerte-doux bg-alerte-doux px-4 py-3 text-sm text-alerte">
@@ -113,6 +120,7 @@ export default async function PageBudget({
                     form="budget-form"
                     type="text"
                     name={`fournisseur:${ligne.posteId}`}
+                    disabled={budget.verrouille}
                     defaultValue={ligne.fournisseur}
                     placeholder={tCommun("nonRenseigne")}
                     className="h-9 w-full rounded-control border border-filet bg-surface px-2 text-encre outline-none focus:border-action"
@@ -134,6 +142,7 @@ export default async function PageBudget({
                     step={1}
                     inputMode="numeric"
                     name={`montant:${ligne.posteId}`}
+                    disabled={budget.verrouille}
                     defaultValue={ligne.montant}
                     className="h-9 w-32 rounded-control border border-filet bg-surface px-2 text-right tabular-nums text-encre outline-none focus:border-action"
                   />
@@ -167,15 +176,6 @@ export default async function PageBudget({
         </table>
       </div>
 
-      <div className="mt-4">
-        <button
-          type="submit"
-          form="budget-form"
-          className="h-11 rounded-control bg-action px-4 text-sm text-white"
-        >
-          {t("enregistrer")}
-        </button>
-      </div>
     </div>
   );
 }

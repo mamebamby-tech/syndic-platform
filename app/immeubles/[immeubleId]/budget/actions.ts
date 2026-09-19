@@ -4,7 +4,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { creerClientServeur } from "@/lib/supabase/server";
 
-export async function enregistrerBudget(formData: FormData) {
+// Écrit les lignes du budget. Partagé par « Enregistrer » et « Enregistrer et
+// générer » : les deux enregistrent exactement de la même façon. La base refuse
+// tout changement si des appels de la période sont émis (budget verrouillé).
+async function ecrireBudget(formData: FormData) {
   const periodeId = String(formData.get("periodeId") ?? "");
   const immeubleId = String(formData.get("immeubleId") ?? "");
   const posteIds = String(formData.get("posteIds") ?? "")
@@ -37,8 +40,11 @@ export async function enregistrerBudget(formData: FormData) {
   if (error) {
     throw new Error(`Enregistrement du budget impossible : ${error.message}`);
   }
+}
 
-  revalidatePath(`/immeubles/${immeubleId}/budget`);
+export async function enregistrerBudget(formData: FormData) {
+  await ecrireBudget(formData);
+  revalidatePath(`/immeubles/${String(formData.get("immeubleId") ?? "")}/budget`);
 }
 
 export async function changerCleRepartition(formData: FormData) {
@@ -63,7 +69,10 @@ export async function changerCleRepartition(formData: FormData) {
   revalidatePath(`/immeubles/${immeubleId}/budget`);
 }
 
-export async function genererAppels(formData: FormData) {
+// Génère les appels de la période depuis le budget ENREGISTRÉ. Ne lit jamais les
+// champs de la page : générer avec un budget non enregistré appellerait des
+// montants que personne n'a validés (l'écran désactive alors le bouton).
+async function genererDepuisLeBudget(formData: FormData) {
   const immeubleId = String(formData.get("immeubleId") ?? "");
   const periodeId = String(formData.get("periodeId") ?? "");
 
@@ -82,4 +91,15 @@ export async function genererAppels(formData: FormData) {
 
   revalidatePath(`/immeubles/${immeubleId}/budget`);
   redirect(`/immeubles/${immeubleId}/appels?generes=${data ?? 0}`);
+}
+
+export async function genererAppels(formData: FormData) {
+  await genererDepuisLeBudget(formData);
+}
+
+// Action unique : enregistre le budget puis génère les appels. Si l'enregistrement
+// échoue (budget verrouillé, par exemple), rien n'est généré.
+export async function enregistrerEtGenererAppels(formData: FormData) {
+  await ecrireBudget(formData);
+  await genererDepuisLeBudget(formData);
 }

@@ -92,7 +92,14 @@ export function ListeAppels({
                       {appel.proprietaireNom}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-encre-2">{tStatut(appel.statut)}</td>
+                  <td className="px-4 py-3 text-encre-2">
+                    {tStatut(appel.statut)}
+                    {appel.statut === "brouillon" && appel.obsolete && (
+                      <span className="ml-2 rounded-control bg-alerte-doux px-1.5 py-0.5 text-xs text-alerte">
+                        {t("badgeObsolete")}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span className={CLASSE_ENVOI[appel.envoi]}>{t(`envoi.${appel.envoi}`)}</span>
                   </td>

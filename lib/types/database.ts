@@ -322,6 +322,8 @@ export interface Database {
           numero: number | null;
           // Copie figée du document, prise à l'émission ; null tant que brouillon.
           instantane: unknown;
+          // Le budget a changé depuis la génération : ne peut pas être émis.
+          obsolete: boolean;
           montant_total: number;
           report_anterieur: number;
           date_emission: string | null;

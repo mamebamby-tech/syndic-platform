@@ -37,6 +37,17 @@ bloquée. Toute modification des coordonnées est tracée et signalée sur le
 tableau de bord.
 
 ### Budget et clés de répartition
+**Génération des appels.** Trois boutons : « Enregistrer le budget », « Générer les
+appels de cette période » et l'action unique **« Enregistrer et générer »**. Tant
+qu'il y a des modifications non enregistrées, « Générer » est désactivé avec le
+message « Enregistrez le budget avant de générer les appels » ; quitter la page
+(fermeture, rechargement, lien, sélecteur d'immeuble) demande confirmation. Si le
+budget est modifié après la génération, les appels en brouillon sont **obsolètes** :
+un bandeau l'indique sur Budget et sur Appels de fonds, et la base refuse de les
+émettre tant qu'ils n'ont pas été régénérés. Une fois des appels émis, le budget
+de la période est **verrouillé** (champs désactivés, bandeau) ; la correction
+passera par un appel complémentaire ou un avoir (chantier différé).
+
 Un poste par ligne : libellé, catégorie, fournisseur retenu, **clé de
 répartition** (liste déroulante), montant. Total par catégorie et général.
 Signalement des postes encore à zéro. Bandeau rappelant le point ouvert sur la

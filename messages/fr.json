@@ -147,6 +147,12 @@
     "exerciceEcheance": "{exercice} · échéance du {echeance}",
     "postesAZero": "{nombre, plural, one {# poste encore à zéro} other {# postes encore à zéro}}",
     "genererAppels": "Générer les appels de cette période",
+    "enregistrerEtGenerer": "Enregistrer et générer",
+    "modificationsNonEnregistrees": "Modifications non enregistrées.",
+    "enregistrerAvantGenerer": "Enregistrez le budget avant de générer les appels",
+    "quitterSansEnregistrer": "Des modifications du budget ne sont pas enregistrées. Quitter cette page les perdra.",
+    "obsoletes": "{nombre, plural, one {# appel en brouillon est obsolète} other {# appels en brouillon sont obsolètes}} : le budget a été modifié depuis leur génération. Régénérez-les avant de les émettre — la base refuse d'émettre un appel obsolète.",
+    "verrouille": "Des appels ont été émis : le budget de cette période est verrouillé. Toute correction passera par un appel complémentaire ou un avoir.",
     "avertissementAscenseur": "La clé de répartition des charges d'ascenseur reste au règlement (tantièmes) : le rapport de gestion propose une pondération par étage, mais seule une assemblée à la majorité absolue peut trancher.",
     "colonnes": {
       "poste": "Poste",
@@ -174,6 +180,8 @@
     "aucunePeriode": "Aucune période n'existe encore pour cet immeuble.",
     "nombreGeneres": "{nombre, plural, one {# appel généré} other {# appels générés}}",
     "generationTerminee": "Génération terminée : {nombre, plural, one {# appel créé} other {# appels créés}}.",
+    "obsoletes": "{nombre, plural, one {# appel en brouillon est obsolète} other {# appels en brouillon sont obsolètes}} : le budget a été modifié depuis leur génération. Régénérez-les depuis l'écran Budget avant de les émettre — la base refuse d'émettre un appel obsolète.",
+    "badgeObsolete": "obsolète",
     "aucunAppel": "Aucun appel généré pour cette période. Chiffre le budget puis lance la génération depuis l'écran Budget.",
     "filtrer": "Filtrer par nom de propriétaire…",
     "colonnes": {

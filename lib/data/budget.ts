@@ -27,6 +27,11 @@ export interface BudgetPeriode {
   totalChargesCommunes: number;
   totauxParCategorie: { categorie: string; total: number }[];
   nombrePostesAZero: number;
+  // Des appels de la période sont émis (et non annulés) : le budget est verrouillé
+  // en base. Toute correction passera par un appel complémentaire ou un avoir.
+  verrouille: boolean;
+  // Brouillons dont le budget a changé depuis la génération : à régénérer.
+  nombreBrouillonsObsoletes: number;
 }
 
 export async function chargerBudget(
@@ -62,6 +67,24 @@ export async function chargerBudget(
   if (erreurBudget) {
     throw new Error(`Lecture du budget impossible : ${erreurBudget.message}`);
   }
+
+  const [{ count: emis, error: erreurEmis }, { count: obsoletes, error: erreurObsoletes }] =
+    await Promise.all([
+      supabase
+        .from("appels")
+        .select("id", { count: "exact", head: true })
+        .eq("periode_id", periodeId)
+        .neq("statut", "annule")
+        .not("instantane", "is", null),
+      supabase
+        .from("appels")
+        .select("id", { count: "exact", head: true })
+        .eq("periode_id", periodeId)
+        .eq("statut", "brouillon")
+        .eq("obsolete", true),
+    ]);
+  if (erreurEmis) throw new Error(`Lecture des appels émis impossible : ${erreurEmis.message}`);
+  if (erreurObsoletes) throw new Error(`Lecture des appels obsolètes impossible : ${erreurObsoletes.message}`);
 
   const budgetParPoste = new Map(
     (budgetLignes ?? []).map((ligne) => [ligne.poste_charge_id, ligne]),
@@ -99,5 +122,7 @@ export async function chargerBudget(
       ([categorie, total]) => ({ categorie, total }),
     ),
     nombrePostesAZero: lignes.filter((ligne) => ligne.aZero).length,
+    verrouille: (emis ?? 0) > 0,
+    nombreBrouillonsObsoletes: obsoletes ?? 0,
   };
 }

@@ -29,6 +29,9 @@ export interface AppelDetail {
   // Anomalies de contact (détail) et état d'envoi qui en découle, par canal.
   anomalies: AnomalieContact[];
   envoi: EtatEnvoi;
+  // Brouillon dont le budget a changé depuis la génération : à régénérer, et
+  // refusé à l'émission par la base.
+  obsolete: boolean;
   // Non nul pour un appel ÉMIS : le document se rend depuis cet instantané, pas
   // depuis le contexte courant de la période (voir lib/appels/instantane.ts).
   contexteEmis: ContexteDocument | null;
@@ -100,7 +103,7 @@ export async function listerAppelsDeLaPeriode(
       supabase
         .from("appels")
         .select(
-          "id, reference, statut, montant_total, report_anterieur, date_echeance, date_emission, proprietaire_id, instantane",
+          "id, reference, statut, montant_total, report_anterieur, date_echeance, date_emission, proprietaire_id, instantane, obsolete",
         )
         .eq("periode_id", periodeId)
         .order("reference"),
@@ -221,6 +224,7 @@ export async function listerAppelsDeLaPeriode(
       anomalies: proprietaire ? anomaliesContact(proprietaire) : [],
       envoi: proprietaire ? etatEnvoi(proprietaire) : "injoignable",
       lignes: (lignesParAppel.get(appel.id) ?? []).sort((a, b) => a.lotNumero - b.lotNumero),
+      obsolete: appel.obsolete,
       contexteEmis: null,
     };
 

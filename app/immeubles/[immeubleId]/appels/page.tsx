@@ -34,6 +34,7 @@ export default async function PageAppels({
   // Le document est rendu dans sa langue opposable, pas dans celle de la
   // personne : voir lib/i18n/document.ts.
   const document = await chargerDocumentLocalise();
+  const nombreObsoletes = appels.filter((a) => a.statut === "brouillon" && a.obsolete).length;
   const nombreGeneres = generes === undefined ? Number.NaN : Number(generes);
 
   return (
@@ -47,6 +48,12 @@ export default async function PageAppels({
           </p>
         )}
       </header>
+
+      {nombreObsoletes > 0 && (
+        <div role="alert" className="mb-6 rounded-card border border-alerte-doux bg-alerte-doux px-4 py-3 text-sm text-alerte">
+          {t("obsoletes", { nombre: nombreObsoletes })}
+        </div>
+      )}
 
       <ListeAppels
         immeubleId={immeubleId}

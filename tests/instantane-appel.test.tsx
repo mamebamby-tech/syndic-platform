@@ -63,6 +63,9 @@ describe("instantané d'un appel émis — le document ne change plus", () => {
       return await corps();
     } finally {
       await client.query("reset role");
+      // Les claims restent posés jusqu'à la fin de la transaction : les effacer,
+      // sinon l'appel « propriétaire » suivant se ferait encore sous cette identité.
+      await client.query("select set_config('request.jwt.claims', '{}', true)");
     }
   };
 
@@ -84,6 +87,7 @@ describe("instantané d'un appel émis — le document ne change plus", () => {
       anomalies: [],
       envoi: "pret",
       lignes: [],
+      obsolete: false,
       contexteEmis: null,
     };
     const appel = appelDepuisInstantane(i, vivantFaux);
@@ -621,6 +625,7 @@ describe("lecture d'un instantané — stricte, sans repli sur les données cour
       anomalies: [],
       envoi: "pret",
       lignes: [{ lotNumero: 99, posteLibelle: "VIVANT", baseCalcul: 1, montant: 1 }],
+      obsolete: false,
       contexteEmis: null,
     };
     const a = appelDepuisInstantane(i, vivant);
