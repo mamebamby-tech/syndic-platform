@@ -375,6 +375,14 @@ export interface Database {
         Args: { p_periode_id: string };
         Returns: number;
       };
+      changer_langue: {
+        Args: { p_langue: string };
+        Returns: undefined;
+      };
+      ma_langue: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
     };
     Enums: {
       role_membre: RoleMembre;
