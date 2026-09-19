@@ -1,25 +1,7 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { getFormatter, getTranslations } from "next-intl/server";
 import { listerRegistreLots, type DetenteurLot } from "@/lib/data/lots";
-
-function formaterSuperficie(valeur: number | null) {
-  if (valeur === null) return "—";
-  return `${valeur.toLocaleString("fr-FR")} m²`;
-}
-
-function formaterQuotePart(tantiemes: number, total: number) {
-  if (total === 0) return "—";
-  return `${((tantiemes / total) * 100).toLocaleString("fr-FR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })} %`;
-}
-
-const LIBELLES_NATURE: Record<DetenteurLot["nature"], string> = {
-  pleine_propriete: "pleine propriété",
-  nue_propriete: "nue-propriété",
-  usufruit: "usufruit",
-  indivision: "indivision",
-};
 
 function DetenteursCellule({
   detenteurs,
@@ -28,8 +10,11 @@ function DetenteursCellule({
   detenteurs: DetenteurLot[];
   immeubleId: string;
 }) {
+  const t = useTranslations("Lots");
+  const tNature = useTranslations("NatureDetention");
+
   if (detenteurs.length === 0) {
-    return <span className="text-encre-3">Aucun détenteur actif</span>;
+    return <span className="text-encre-3">{t("aucunDetenteur")}</span>;
   }
 
   return (
@@ -43,11 +28,11 @@ function DetenteursCellule({
             {detenteur.nom}
           </Link>
           {detenteur.groupeNom && (
-            <span className="text-encre-3"> · groupe {detenteur.groupeNom}</span>
+            <span className="text-encre-3"> · {t("groupe", { nom: detenteur.groupeNom })}</span>
           )}
           {detenteur.nature !== "pleine_propriete" && (
             <span className="ml-1 rounded-control bg-alerte-doux px-1.5 py-0.5 text-xs text-alerte">
-              {LIBELLES_NATURE[detenteur.nature]}
+              {tNature(detenteur.nature)}
             </span>
           )}
         </li>
@@ -63,13 +48,23 @@ export default async function PageRegistreLots({
 }) {
   const { immeubleId } = await params;
   const { lots, totalTantiemes } = await listerRegistreLots(immeubleId);
+  const t = await getTranslations("Lots");
+  const format = await getFormatter();
+  const nonRenseigne = (await getTranslations("Commun"))("nonRenseigne");
+
+  const formaterSuperficie = (valeur: number | null) =>
+    valeur === null ? nonRenseigne : t("superficie", { valeur: format.number(valeur) });
+  const formaterQuotePart = (tantiemes: number) =>
+    totalTantiemes === 0
+      ? nonRenseigne
+      : format.number(tantiemes / totalTantiemes, "pourcentage");
 
   return (
     <div>
       <header className="mb-6">
-        <h1 className="text-2xl text-encre">Registre des lots</h1>
+        <h1 className="text-2xl text-encre">{t("titre")}</h1>
         <p className="mt-1 text-sm text-encre-2">
-          {lots.length} lots · {totalTantiemes.toLocaleString("fr-FR")} tantièmes
+          {t("resume", { nombreLots: lots.length, tantiemes: totalTantiemes })}
         </p>
       </header>
 
@@ -77,13 +72,13 @@ export default async function PageRegistreLots({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-filet text-left text-xs uppercase tracking-wide text-encre-3">
-              <th className="px-4 py-3 font-medium">Lot</th>
-              <th className="px-4 py-3 font-medium">Désignation</th>
-              <th className="px-4 py-3 font-medium">Niveau</th>
-              <th className="px-4 py-3 text-right font-medium">Superficie</th>
-              <th className="px-4 py-3 text-right font-medium">Tantièmes</th>
-              <th className="px-4 py-3 text-right font-medium">Quote-part</th>
-              <th className="px-4 py-3 font-medium">Détenteur(s)</th>
+              <th className="px-4 py-3 font-medium">{t("colonnes.lot")}</th>
+              <th className="px-4 py-3 font-medium">{t("colonnes.designation")}</th>
+              <th className="px-4 py-3 font-medium">{t("colonnes.niveau")}</th>
+              <th className="px-4 py-3 text-right font-medium">{t("colonnes.superficie")}</th>
+              <th className="px-4 py-3 text-right font-medium">{t("colonnes.tantiemes")}</th>
+              <th className="px-4 py-3 text-right font-medium">{t("colonnes.quotePart")}</th>
+              <th className="px-4 py-3 font-medium">{t("colonnes.detenteurs")}</th>
             </tr>
           </thead>
           <tbody>
@@ -91,15 +86,15 @@ export default async function PageRegistreLots({
               <tr key={lot.id} className="border-b border-filet last:border-0">
                 <td className="px-4 py-3 tabular-nums text-encre">{lot.numero}</td>
                 <td className="px-4 py-3 text-encre">{lot.designation}</td>
-                <td className="px-4 py-3 text-encre-2">{lot.niveau ?? "—"}</td>
+                <td className="px-4 py-3 text-encre-2">{lot.niveau ?? nonRenseigne}</td>
                 <td className="px-4 py-3 text-right tabular-nums text-encre-2">
                   {formaterSuperficie(lot.superficieM2)}
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums text-encre">
-                  {lot.tantiemes.toLocaleString("fr-FR")}
+                  {format.number(lot.tantiemes)}
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums text-encre-2">
-                  {formaterQuotePart(lot.tantiemes, totalTantiemes)}
+                  {formaterQuotePart(lot.tantiemes)}
                 </td>
                 <td className="px-4 py-3">
                   <DetenteursCellule detenteurs={lot.detenteurs} immeubleId={immeubleId} />

@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { seDeconnecter } from "@/app/auth/actions";
 import type { ImmeubleAvecOrganisation } from "@/lib/data/immeubles";
 import { SelecteurImmeuble } from "./selecteur-immeuble";
@@ -12,6 +13,8 @@ export function BarreLaterale({
   immeubles: ImmeubleAvecOrganisation[];
   immeubleActuelId: string;
 }) {
+  const t = useTranslations("Navigation");
+
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-filet bg-surface">
       <div className="border-b border-filet p-4">
@@ -22,11 +25,9 @@ export function BarreLaterale({
       </div>
 
       <nav className="flex-1 space-y-1 p-3">
-        <LienNav href={`/immeubles/${immeubleActuelId}/lots`}>
-          Registre des lots
-        </LienNav>
-        <LienNav href={`/immeubles/${immeubleActuelId}/budget`}>Budget</LienNav>
-        <LienNav href={`/immeubles/${immeubleActuelId}/appels`}>Appels de fonds</LienNav>
+        <LienNav href={`/immeubles/${immeubleActuelId}/lots`}>{t("registreLots")}</LienNav>
+        <LienNav href={`/immeubles/${immeubleActuelId}/budget`}>{t("budget")}</LienNav>
+        <LienNav href={`/immeubles/${immeubleActuelId}/appels`}>{t("appels")}</LienNav>
       </nav>
 
       <form action={seDeconnecter} className="border-t border-filet p-3">
@@ -34,7 +35,7 @@ export function BarreLaterale({
           type="submit"
           className="w-full rounded-control px-3 py-2 text-left text-sm text-encre-2 hover:bg-action-doux/60"
         >
-          Se déconnecter
+          {t("deconnexion")}
         </button>
       </form>
     </aside>

@@ -46,6 +46,15 @@ comptes, sans toucher au code.
 Ne déduis jamais un regroupement d'un contact commun : deux adresses du registre
 réel sont partagées par des personnes sans lien.
 
+### La langue est une donnée de la personne
+
+`membres.langue` (personnel du cabinet) et `proprietaires.langue`
+(copropriétaire), défaut `fr`, contraintes en format (deux lettres) et non en
+liste. Une valeur que l'application ne sert pas retombe sur le français. Comme
+pour tout le reste, elle se rattache à la ligne `proprietaires`, jamais à une
+adresse électronique. Les documents juridiques n'en dépendent pas : ils restent
+en français, seule version opposable (`docs/06-decisions.md`, n° 17).
+
 ### Un lot peut avoir plusieurs détenteurs, et changer de mains
 
 `lot_proprietaires` porte `nature` (pleine propriété, nue-propriété, usufruit,

@@ -20,7 +20,10 @@ effectif (WhatsApp, courriel) restent à construire — voir
 - `supabase/migrations/` — schéma multi-tenant, sécurité par ligne, moteur de répartition
 - `supabase/seed/seed.sql` — Mamelles Tower : 62 lots, 21 entités, règlement paramétré
 - `donnees-privees/` — registre réel, non versionné (voir `docs/06-decisions.md`)
-- `docs/` — produit, modèle de données, règles métier, charte, écrans, décisions
+- `docs/` — produit, modèle de données, règles métier, charte, écrans, décisions,
+  glossaire (termes à arrêter avant toute traduction)
+- `messages/` — textes d'interface (`fr.json` complet, `en.json` vide : la
+  traduction attend le glossaire)
 - `app/`, `components/`, `lib/` — l'application Next.js
 - `tests/` — moteur de répartition, génération des appels, sécurité par ligne
   multi-cabinet ; contre les fonctions SQL et la base réelles

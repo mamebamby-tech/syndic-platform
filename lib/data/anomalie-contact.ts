@@ -10,11 +10,8 @@ export interface ContactProprietaire {
   telephone: string | null;
 }
 
-export const LIBELLES_ANOMALIE_CONTACT: Record<AnomalieContact, string> = {
-  telephone_absent: "aucun numéro de téléphone",
-  email_absent: "aucune adresse électronique",
-  email_invalide: "adresse électronique invalide",
-};
+// Les libellés affichés vivent dans messages/*.json (`AnomalieContact.*`),
+// indexés par ces mêmes codes.
 
 export function anomaliesContact(contact: ContactProprietaire): AnomalieContact[] {
   const anomalies: AnomalieContact[] = [];

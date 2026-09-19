@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { creerClientNavigateur } from "@/lib/supabase/client";
 
 type Mode = "email" | "telephone";
@@ -12,6 +13,7 @@ function estEmail(valeur: string) {
 }
 
 export function FormulaireConnexion() {
+  const t = useTranslations("Connexion");
   const router = useRouter();
   const supabase = creerClientNavigateur();
 
@@ -70,9 +72,9 @@ export function FormulaireConnexion() {
 
   return (
     <div className="w-full max-w-sm rounded-card border border-filet bg-surface p-8">
-      <h1 className="mb-1 text-2xl text-encre">Connexion</h1>
+      <h1 className="mb-1 text-2xl text-encre">{t("titre")}</h1>
       <p className="mb-6 text-sm text-encre-2">
-        Aucun mot de passe. Un code à usage unique confirme votre identité.
+        {t("introduction")}
       </p>
 
       {etape === "identifiant" && (
@@ -90,7 +92,7 @@ export function FormulaireConnexion() {
                   : "text-encre-2"
               }`}
             >
-              Adresse électronique
+              {t("modeEmail")}
             </button>
             <button
               type="button"
@@ -104,7 +106,7 @@ export function FormulaireConnexion() {
                   : "text-encre-2"
               }`}
             >
-              Téléphone
+              {t("modeTelephone")}
             </button>
           </div>
 
@@ -113,7 +115,7 @@ export function FormulaireConnexion() {
               htmlFor="identifiant"
               className="mb-1 block text-sm text-encre-2"
             >
-              {mode === "email" ? "Adresse électronique" : "Numéro de téléphone"}
+              {mode === "email" ? t("champEmail") : t("champTelephone")}
             </label>
             <input
               id="identifiant"
@@ -121,7 +123,7 @@ export function FormulaireConnexion() {
               type={mode === "email" ? "email" : "tel"}
               required
               autoComplete={mode === "email" ? "email" : "tel"}
-              placeholder={mode === "email" ? "vous@exemple.com" : "+221 77 000 00 00"}
+              placeholder={mode === "email" ? t("exempleEmail") : t("exempleTelephone")}
               value={identifiant}
               onChange={(evenement) => setIdentifiant(evenement.target.value)}
               className="h-11 w-full rounded-control border border-filet bg-surface px-3 text-encre outline-none focus:border-action"
@@ -135,7 +137,7 @@ export function FormulaireConnexion() {
             disabled={enCours || identifiant.length === 0}
             className="h-11 w-full rounded-control bg-action text-white transition-opacity disabled:opacity-50"
           >
-            {enCours ? "Envoi…" : "Recevoir le code"}
+            {enCours ? t("envoiEnCours") : t("recevoirCode")}
           </button>
         </form>
       )}
@@ -143,13 +145,18 @@ export function FormulaireConnexion() {
       {etape === "code" && (
         <form onSubmit={verifierCode} className="space-y-4">
           <p className="text-sm text-encre-2">
-            Code envoyé {estEmail(identifiant) ? "par courriel" : "par SMS"} à{" "}
-            <span className="text-encre">{identifiant}</span>.
+            {t.rich("codeEnvoye", {
+              canal: estEmail(identifiant) ? "email" : "sms",
+              identifiant,
+              // `<valeur>` reste une balise du message : la traduction choisit
+              // où l'identifiant tombe dans la phrase.
+              valeur: (morceaux) => <span className="text-encre">{morceaux}</span>,
+            })}
           </p>
 
           <div>
             <label htmlFor="code" className="mb-1 block text-sm text-encre-2">
-              Code à usage unique
+              {t("champCode")}
             </label>
             <input
               id="code"
@@ -171,7 +178,7 @@ export function FormulaireConnexion() {
             disabled={enCours || code.length === 0}
             className="h-11 w-full rounded-control bg-action text-white transition-opacity disabled:opacity-50"
           >
-            {enCours ? "Vérification…" : "Se connecter"}
+            {enCours ? t("verificationEnCours") : t("seConnecter")}
           </button>
 
           <button
@@ -183,7 +190,7 @@ export function FormulaireConnexion() {
             }}
             className="w-full text-sm text-encre-2 underline underline-offset-2"
           >
-            Changer d&apos;adresse ou de numéro
+            {t("changerIdentifiant")}
           </button>
         </form>
       )}

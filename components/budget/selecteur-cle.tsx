@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useTranslations } from "next-intl";
 import type { CleRepartitionOption } from "@/lib/data/budget";
 import { changerCleRepartition } from "@/app/immeubles/[immeubleId]/budget/actions";
 
@@ -15,6 +16,7 @@ export function SelecteurCle({
   cleActuelleId: string;
   options: CleRepartitionOption[];
 }) {
+  const t = useTranslations("Budget.colonnes");
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
@@ -22,7 +24,7 @@ export function SelecteurCle({
       <input type="hidden" name="immeubleId" value={immeubleId} />
       <input type="hidden" name="posteId" value={posteId} />
       <label className="sr-only" htmlFor={`cle-${posteId}`}>
-        Clé de répartition
+        {t("cleRepartition")}
       </label>
       <select
         id={`cle-${posteId}`}

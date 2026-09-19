@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { ImmeubleAvecOrganisation } from "@/lib/data/immeubles";
 
 export function SelecteurImmeuble({
@@ -10,12 +11,13 @@ export function SelecteurImmeuble({
   immeubles: ImmeubleAvecOrganisation[];
   immeubleActuelId: string;
 }) {
+  const t = useTranslations("Navigation");
   const router = useRouter();
 
   return (
     <div>
       <label htmlFor="selecteur-immeuble" className="sr-only">
-        Immeuble
+        {t("immeuble")}
       </label>
       <select
         id="selecteur-immeuble"

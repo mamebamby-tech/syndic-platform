@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
+import { getFormatter, getTranslations } from "next-intl/server";
 import { chargerReleve } from "@/lib/data/releve";
-import { formaterDate, formaterNombre, formaterXof } from "@/lib/format";
 
 export default async function PageReleveProprietaire({
   params,
@@ -19,60 +19,67 @@ export default async function PageReleveProprietaire({
   }
 
   const { releve } = resultat;
+  const t = await getTranslations("Releve");
+  const tStatutAppel = await getTranslations("StatutAppelReleve");
+  const tStatutPaiement = await getTranslations("StatutPaiement");
+  const tMoyen = await getTranslations("MoyenPaiement");
+  const format = await getFormatter();
 
   return (
     <div>
       <header className="mb-6">
         <h1 className="text-2xl text-encre">{releve.nom}</h1>
         <p className="mt-1 text-sm text-encre-2">
-          {releve.email ?? "aucune adresse électronique"} ·{" "}
-          {releve.telephone ?? "aucun numéro de téléphone"}
+          {releve.email ?? t("aucunEmail")} · {releve.telephone ?? t("aucunTelephone")}
         </p>
       </header>
 
       {releve.estGroupe && releve.membresGroupe.length > 0 && (
         <div className="mb-6 rounded-card border border-action-doux bg-action-doux px-4 py-3 text-sm text-action-encre">
-          Compte consolidé : {releve.membresGroupe.map((membre) => membre.nom).join(", ")}{" "}
-          partagent le même ayant droit. Le regroupement est une donnée
-          réversible — il peut être défait sans toucher au code.
+          {t("compteConsolide", {
+            membres: format.list(
+              releve.membresGroupe.map((membre) => membre.nom),
+              { type: "unit", style: "long" },
+            ),
+          })}
         </div>
       )}
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-card border border-filet bg-surface p-4">
-          <p className="text-xs uppercase tracking-wide text-encre-3">Total appelé</p>
+          <p className="text-xs uppercase tracking-wide text-encre-3">{t("totalAppele")}</p>
           <p className="mt-1 text-xl tabular-nums text-encre">
-            {formaterXof(releve.totalAppele)}
+            {format.number(releve.totalAppele, "xof")}
           </p>
         </div>
         <div className="rounded-card border border-filet bg-surface p-4">
-          <p className="text-xs uppercase tracking-wide text-encre-3">Total payé</p>
-          <p className="mt-1 text-xl tabular-nums text-encre">{formaterXof(releve.totalPaye)}</p>
+          <p className="text-xs uppercase tracking-wide text-encre-3">{t("totalPaye")}</p>
+          <p className="mt-1 text-xl tabular-nums text-encre">{format.number(releve.totalPaye, "xof")}</p>
         </div>
         <div className="rounded-card border border-filet bg-surface p-4">
-          <p className="text-xs uppercase tracking-wide text-encre-3">Solde dû</p>
+          <p className="text-xs uppercase tracking-wide text-encre-3">{t("soldeDu")}</p>
           <p
             className={`mt-1 text-xl tabular-nums ${
               releve.solde > 0 ? "text-impaye" : "text-encre"
             }`}
           >
-            {formaterXof(releve.solde)}
+            {format.number(releve.solde, "xof")}
           </p>
         </div>
       </div>
 
       <section className="mb-6">
         <h2 className="mb-3 font-serif text-lg text-marque">
-          Lots ({releve.lots.length})
+          {t("titreLots", { nombre: releve.lots.length })}
         </h2>
         <div className="overflow-x-auto rounded-card border border-filet bg-surface">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-filet text-left text-xs uppercase tracking-wide text-encre-3">
-                <th className="px-4 py-3 font-medium">Lot</th>
-                <th className="px-4 py-3 font-medium">Désignation</th>
-                <th className="px-4 py-3 text-right font-medium">Tantièmes</th>
-                <th className="px-4 py-3 text-right font-medium">Quote-part</th>
+                <th className="px-4 py-3 font-medium">{t("colonnesLots.lot")}</th>
+                <th className="px-4 py-3 font-medium">{t("colonnesLots.designation")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colonnesLots.tantiemes")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colonnesLots.quotePart")}</th>
               </tr>
             </thead>
             <tbody>
@@ -81,14 +88,10 @@ export default async function PageReleveProprietaire({
                   <td className="px-4 py-3 tabular-nums text-encre">{lot.numero}</td>
                   <td className="px-4 py-3 text-encre">{lot.designation}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-encre">
-                    {formaterNombre(lot.tantiemes)}
+                    {format.number(lot.tantiemes)}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-encre-2">
-                    {(lot.quotePart * 100).toLocaleString("fr-FR", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}{" "}
-                    %
+                    {format.number(lot.quotePart, "pourcentage")}
                   </td>
                 </tr>
               ))}
@@ -98,35 +101,50 @@ export default async function PageReleveProprietaire({
       </section>
 
       <section>
-        <h2 className="mb-3 font-serif text-lg text-marque">Mouvements</h2>
+        <h2 className="mb-3 font-serif text-lg text-marque">{t("titreMouvements")}</h2>
         {releve.mouvements.length === 0 ? (
-          <p className="text-sm text-encre-2">Aucun mouvement pour l&apos;instant.</p>
+          <p className="text-sm text-encre-2">{t("aucunMouvement")}</p>
         ) : (
           <div className="overflow-x-auto rounded-card border border-filet bg-surface">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-filet text-left text-xs uppercase tracking-wide text-encre-3">
-                  <th className="px-4 py-3 font-medium">Date</th>
-                  <th className="px-4 py-3 font-medium">Mouvement</th>
-                  <th className="px-4 py-3 font-medium">Statut</th>
-                  <th className="px-4 py-3 text-right font-medium">Montant</th>
+                  <th className="px-4 py-3 font-medium">{t("colonnesMouvements.date")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colonnesMouvements.mouvement")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colonnesMouvements.statut")}</th>
+                  <th className="px-4 py-3 text-right font-medium">
+                    {t("colonnesMouvements.montant")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {releve.mouvements.map((mouvement, index) => (
                   <tr key={index} className="border-b border-filet last:border-0">
                     <td className="px-4 py-3 tabular-nums text-encre-2">
-                      {formaterDate(mouvement.date)}
+                      {format.dateTime(new Date(mouvement.date), "date")}
                     </td>
-                    <td className="px-4 py-3 text-encre">{mouvement.libelle}</td>
-                    <td className="px-4 py-3 text-encre-2">{mouvement.statut}</td>
+                    <td className="px-4 py-3 text-encre">
+                      {mouvement.type === "appel"
+                        ? mouvement.periodeLibelle
+                          ? t("mouvementAppelPeriode", {
+                              reference: mouvement.reference,
+                              periode: mouvement.periodeLibelle,
+                            })
+                          : t("mouvementAppel", { reference: mouvement.reference })
+                        : t("mouvementPaiement", { moyen: tMoyen(mouvement.moyen) })}
+                    </td>
+                    <td className="px-4 py-3 text-encre-2">
+                      {mouvement.type === "appel"
+                        ? tStatutAppel(mouvement.statut)
+                        : tStatutPaiement(mouvement.statut)}
+                    </td>
                     <td
                       className={`px-4 py-3 text-right tabular-nums ${
                         mouvement.sens === "du" ? "text-encre" : "text-action"
                       }`}
                     >
                       {mouvement.sens === "du" ? "+" : "−"}
-                      {formaterXof(mouvement.montant)}
+                      {format.number(mouvement.montant, "xof")}
                     </td>
                   </tr>
                 ))}

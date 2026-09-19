@@ -1,0 +1,197 @@
+{
+  "Metadata": {
+    "description": "Plateforme de gestion de syndic multi-cabinet et multi-immeuble."
+  },
+  "Commun": {
+    "nonRenseigne": "—"
+  },
+  "Connexion": {
+    "titre": "Connexion",
+    "introduction": "Aucun mot de passe. Un code à usage unique confirme votre identité.",
+    "modeEmail": "Adresse électronique",
+    "modeTelephone": "Téléphone",
+    "champEmail": "Adresse électronique",
+    "champTelephone": "Numéro de téléphone",
+    "exempleEmail": "vous@exemple.com",
+    "exempleTelephone": "+221 77 000 00 00",
+    "recevoirCode": "Recevoir le code",
+    "envoiEnCours": "Envoi…",
+    "codeEnvoye": "Code envoyé {canal, select, email {par courriel} other {par SMS}} à <valeur>{identifiant}</valeur>.",
+    "champCode": "Code à usage unique",
+    "seConnecter": "Se connecter",
+    "verificationEnCours": "Vérification…",
+    "changerIdentifiant": "Changer d'adresse ou de numéro"
+  },
+  "Accueil": {
+    "aucunImmeuble": {
+      "titre": "Aucun immeuble accessible",
+      "message": "Ce compte n'est rattaché à aucun cabinet de syndic. Contactez votre administrateur."
+    }
+  },
+  "Navigation": {
+    "immeuble": "Immeuble",
+    "registreLots": "Registre des lots",
+    "budget": "Budget",
+    "appels": "Appels de fonds",
+    "deconnexion": "Se déconnecter"
+  },
+  "Lots": {
+    "titre": "Registre des lots",
+    "resume": "{nombreLots, plural, one {# lot} other {# lots}} · {tantiemes, plural, one {# tantième} other {# tantièmes}}",
+    "colonnes": {
+      "lot": "Lot",
+      "designation": "Désignation",
+      "niveau": "Niveau",
+      "superficie": "Superficie",
+      "tantiemes": "Tantièmes",
+      "quotePart": "Quote-part",
+      "detenteurs": "Détenteur(s)"
+    },
+    "superficie": "{valeur} m²",
+    "aucunDetenteur": "Aucun détenteur actif",
+    "groupe": "groupe {nom}"
+  },
+  "NatureDetention": {
+    "pleine_propriete": "pleine propriété",
+    "nue_propriete": "nue-propriété",
+    "usufruit": "usufruit",
+    "indivision": "indivision"
+  },
+  "Budget": {
+    "titre": "Budget",
+    "titrePeriode": "Budget — {periode}",
+    "aucunePeriode": "Aucun exercice ni période n'existe encore pour cet immeuble.",
+    "exerciceEcheance": "{exercice} · échéance du {echeance}",
+    "postesAZero": "{nombre, plural, one {# poste encore à zéro} other {# postes encore à zéro}}",
+    "genererAppels": "Générer les appels de cette période",
+    "avertissementAscenseur": "La clé de répartition des charges d'ascenseur reste au règlement (tantièmes) : le rapport de gestion propose une pondération par étage, mais seule une assemblée à la majorité absolue peut trancher.",
+    "colonnes": {
+      "poste": "Poste",
+      "categorie": "Catégorie",
+      "fournisseur": "Fournisseur",
+      "cleRepartition": "Clé de répartition",
+      "montant": "Montant (XOF)"
+    },
+    "aZero": "à zéro",
+    "totalGeneral": "Total général",
+    "totalCategorie": {
+      "general": "Total charges générales",
+      "ascenseur": "Total ascenseurs",
+      "autre": "Total {categorie}"
+    },
+    "enregistrer": "Enregistrer le budget",
+    "categories": {
+      "general": "Charges générales",
+      "ascenseur": "Ascenseurs"
+    }
+  },
+  "Appels": {
+    "titre": "Appels de fonds",
+    "titrePeriode": "Appels de fonds — {periode}",
+    "aucunePeriode": "Aucune période n'existe encore pour cet immeuble.",
+    "nombreGeneres": "{nombre, plural, one {# appel généré} other {# appels générés}}",
+    "generationTerminee": "Génération terminée : {nombre, plural, one {# appel créé} other {# appels créés}}.",
+    "aucunAppel": "Aucun appel généré pour cette période. Chiffre le budget puis lance la génération depuis l'écran Budget.",
+    "filtrer": "Filtrer par nom de propriétaire…",
+    "colonnes": {
+      "proprietaire": "Propriétaire",
+      "statut": "Statut",
+      "envoi": "Envoi",
+      "montant": "Montant"
+    },
+    "envoiBloque": "bloqué",
+    "envoiPret": "prêt",
+    "envoiBloqueDetail": "Envoi bloqué : {anomalies}."
+  },
+  "StatutAppel": {
+    "brouillon": "Brouillon",
+    "emis": "Émis",
+    "partiel": "Partiel",
+    "solde": "Soldé",
+    "annule": "Annulé"
+  },
+  "StatutAppelReleve": {
+    "brouillon": "Brouillon",
+    "emis": "Émis",
+    "partiel": "Partiellement payé",
+    "solde": "Soldé",
+    "annule": "Annulé"
+  },
+  "StatutPaiement": {
+    "en_attente": "En attente",
+    "confirme": "Confirmé",
+    "echoue": "Échoué",
+    "rembourse": "Remboursé"
+  },
+  "MoyenPaiement": {
+    "wave": "Wave",
+    "orange_money": "Orange Money",
+    "virement": "Virement",
+    "virement_international": "Virement international",
+    "especes": "Espèces",
+    "cheque": "Chèque"
+  },
+  "AnomalieContact": {
+    "telephone_absent": "aucun numéro de téléphone",
+    "email_absent": "aucune adresse électronique",
+    "email_invalide": "adresse électronique invalide"
+  },
+  "Releve": {
+    "aucunEmail": "aucune adresse électronique",
+    "aucunTelephone": "aucun numéro de téléphone",
+    "compteConsolide": "Compte consolidé : {membres} partagent le même ayant droit. Le regroupement est une donnée réversible — il peut être défait sans toucher au code.",
+    "totalAppele": "Total appelé",
+    "totalPaye": "Total payé",
+    "soldeDu": "Solde dû",
+    "titreLots": "Lots ({nombre})",
+    "titreMouvements": "Mouvements",
+    "aucunMouvement": "Aucun mouvement pour l'instant.",
+    "colonnesLots": {
+      "lot": "Lot",
+      "designation": "Désignation",
+      "tantiemes": "Tantièmes",
+      "quotePart": "Quote-part"
+    },
+    "colonnesMouvements": {
+      "date": "Date",
+      "mouvement": "Mouvement",
+      "statut": "Statut",
+      "montant": "Montant"
+    },
+    "mouvementAppel": "Appel {reference}",
+    "mouvementAppelPeriode": "Appel {reference} — {periode}",
+    "mouvementPaiement": "Paiement {moyen}"
+  },
+  "Documents": {
+    "mentions": {
+      "courtoisie": "Traduction de courtoisie, non opposable. Seule la version française fait foi."
+    },
+    "Appel": {
+      "titre": "Appel de fonds — {periode}",
+      "reference": "Référence",
+      "destinataire": "Destinataire",
+      "echeance": "Échéance",
+      "reportAnterieur": "Report antérieur",
+      "colonnes": {
+        "lot": "Lot",
+        "poste": "Poste",
+        "base": "Base",
+        "montant": "Montant"
+      },
+      "totalAppele": "Total appelé",
+      "ninea": "NINEA {valeur}",
+      "rccm": "RCCM {valeur}"
+    }
+  },
+  "Notifications": {
+    "appel_emis": {
+      "email": {
+        "sujet": "Appel de fonds {reference} — {periode}",
+        "corps": "Bonjour,\n\nVotre appel de fonds {reference} pour la période {periode} est disponible.\n\nMontant appelé : {montant, number, xof}\nÉchéance : {echeance, date, date}\n\n{cabinet}"
+      },
+      "whatsapp": {
+        "corps": "{cabinet} : votre appel de fonds {reference} ({periode}) est disponible. Montant : {montant, number, xof}, échéance le {echeance, date, date}."
+      }
+    }
+  }
+}

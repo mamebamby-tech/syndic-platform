@@ -54,6 +54,7 @@ export interface Database {
           organisation_id: string;
           user_id: string;
           role: RoleMembre;
+          langue: string;
           cree_le: string;
         };
         Insert: Partial<Database["public"]["Tables"]["membres"]["Row"]> & {
@@ -131,6 +132,7 @@ export interface Database {
           groupe_id: string | null;
           est_groupe: boolean;
           note: string | null;
+          langue: string;
           cree_le: string;
         };
         Insert: Partial<Database["public"]["Tables"]["proprietaires"]["Row"]> & {

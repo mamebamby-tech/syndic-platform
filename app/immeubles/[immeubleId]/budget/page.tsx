@@ -1,13 +1,13 @@
+import { getFormatter, getTranslations } from "next-intl/server";
 import { trouverPeriodeCourante } from "@/lib/data/periodes";
 import { chargerBudget } from "@/lib/data/budget";
 import { SelecteurCle } from "@/components/budget/selecteur-cle";
-import { formaterDate, formaterNombre } from "@/lib/format";
+import type { Messages } from "@/lib/i18n/messages";
 import { enregistrerBudget, genererAppels } from "./actions";
 
-const LIBELLES_CATEGORIE: Record<string, string> = {
-  general: "Charges générales",
-  ascenseur: "Ascenseurs",
-};
+// Une catégorie sans libellé dans messages/*.json s'affiche sous son code :
+// les catégories viennent de la base, pas d'une liste figée dans le code.
+type CategorieConnue = keyof Messages["Budget"]["categories"];
 
 export default async function PageBudget({
   params,
@@ -16,14 +16,17 @@ export default async function PageBudget({
 }) {
   const { immeubleId } = await params;
   const periode = await trouverPeriodeCourante(immeubleId);
+  const t = await getTranslations("Budget");
+  const tCommun = await getTranslations("Commun");
+  const format = await getFormatter();
+  const categorieConnue = (categorie: string): categorie is CategorieConnue =>
+    t.has(`categories.${categorie}` as "categories.general");
 
   if (!periode) {
     return (
       <div>
-        <h1 className="text-2xl text-encre">Budget</h1>
-        <p className="mt-4 text-sm text-encre-2">
-          Aucun exercice ni période n&apos;existe encore pour cet immeuble.
-        </p>
+        <h1 className="text-2xl text-encre">{t("titre")}</h1>
+        <p className="mt-4 text-sm text-encre-2">{t("aucunePeriode")}</p>
       </div>
     );
   }
@@ -36,17 +39,18 @@ export default async function PageBudget({
     <div>
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl text-encre">Budget — {periode.libelle}</h1>
+          <h1 className="text-2xl text-encre">{t("titrePeriode", { periode: periode.libelle })}</h1>
           <p className="mt-1 text-sm text-encre-2">
-            {periode.exerciceLibelle} · échéance du{" "}
-            {formaterDate(periode.dateEcheance)}
+            {t("exerciceEcheance", {
+              exercice: periode.exerciceLibelle,
+              echeance: format.dateTime(new Date(periode.dateEcheance), "date"),
+            })}
             {budget.nombrePostesAZero > 0 && (
               <>
                 {" "}
                 ·{" "}
                 <span className="text-alerte">
-                  {budget.nombrePostesAZero} poste
-                  {budget.nombrePostesAZero > 1 ? "s" : ""} encore à zéro
+                  {t("postesAZero", { nombre: budget.nombrePostesAZero })}
                 </span>
               </>
             )}
@@ -60,16 +64,14 @@ export default async function PageBudget({
             type="submit"
             className="h-11 rounded-control bg-action px-4 text-sm text-white"
           >
-            Générer les appels de cette période
+            {t("genererAppels")}
           </button>
         </form>
       </header>
 
       {aUnPosteAscenseur && (
         <div className="mb-6 rounded-card border border-alerte-doux bg-alerte-doux px-4 py-3 text-sm text-alerte">
-          La clé de répartition des charges d&apos;ascenseur reste au règlement
-          (tantièmes) : le rapport de gestion propose une pondération par
-          étage, mais seule une assemblée à la majorité absolue peut trancher.
+          {t("avertissementAscenseur")}
         </div>
       )}
 
@@ -83,11 +85,11 @@ export default async function PageBudget({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-filet text-left text-xs uppercase tracking-wide text-encre-3">
-              <th className="px-4 py-3 font-medium">Poste</th>
-              <th className="px-4 py-3 font-medium">Catégorie</th>
-              <th className="px-4 py-3 font-medium">Fournisseur</th>
-              <th className="px-4 py-3 font-medium">Clé de répartition</th>
-              <th className="px-4 py-3 text-right font-medium">Montant (XOF)</th>
+              <th className="px-4 py-3 font-medium">{t("colonnes.poste")}</th>
+              <th className="px-4 py-3 font-medium">{t("colonnes.categorie")}</th>
+              <th className="px-4 py-3 font-medium">{t("colonnes.fournisseur")}</th>
+              <th className="px-4 py-3 font-medium">{t("colonnes.cleRepartition")}</th>
+              <th className="px-4 py-3 text-right font-medium">{t("colonnes.montant")}</th>
             </tr>
           </thead>
           <tbody>
@@ -97,12 +99,12 @@ export default async function PageBudget({
                   {ligne.libelle}
                   {ligne.aZero && (
                     <span className="ml-2 rounded-control bg-alerte-doux px-1.5 py-0.5 text-xs text-alerte">
-                      à zéro
+                      {t("aZero")}
                     </span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-encre-2">
-                  {LIBELLES_CATEGORIE[ligne.categorie] ?? ligne.categorie}
+                  {categorieConnue(ligne.categorie) ? t(`categories.${ligne.categorie}`) : ligne.categorie}
                 </td>
                 <td className="px-4 py-3">
                   <input
@@ -110,7 +112,7 @@ export default async function PageBudget({
                     type="text"
                     name={`fournisseur:${ligne.posteId}`}
                     defaultValue={ligne.fournisseur}
-                    placeholder="—"
+                    placeholder={tCommun("nonRenseigne")}
                     className="h-9 w-full rounded-control border border-filet bg-surface px-2 text-encre outline-none focus:border-action"
                   />
                 </td>
@@ -141,17 +143,19 @@ export default async function PageBudget({
             {budget.totauxParCategorie.map(({ categorie, total }) => (
               <tr key={categorie} className="border-t border-filet text-encre-2">
                 <td className="px-4 py-2" colSpan={4}>
-                  Total {(LIBELLES_CATEGORIE[categorie] ?? categorie).toLowerCase()}
+                  {categorieConnue(categorie)
+                    ? t(`totalCategorie.${categorie}`)
+                    : t("totalCategorie.autre", { categorie })}
                 </td>
-                <td className="px-4 py-2 text-right tabular-nums">{formaterNombre(total)}</td>
+                <td className="px-4 py-2 text-right tabular-nums">{format.number(total)}</td>
               </tr>
             ))}
             <tr className="border-t border-filet font-medium text-encre">
               <td className="px-4 py-3" colSpan={4}>
-                Total général
+                {t("totalGeneral")}
               </td>
               <td className="px-4 py-3 text-right tabular-nums">
-                {formaterNombre(budget.totalGeneral)}
+                {format.number(budget.totalGeneral)}
               </td>
             </tr>
           </tfoot>
@@ -164,7 +168,7 @@ export default async function PageBudget({
           form="budget-form"
           className="h-11 rounded-control bg-action px-4 text-sm text-white"
         >
-          Enregistrer le budget
+          {t("enregistrer")}
         </button>
       </div>
     </div>

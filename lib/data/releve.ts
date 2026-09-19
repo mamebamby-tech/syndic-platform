@@ -1,6 +1,11 @@
 import "server-only";
 import { creerClientServeur } from "@/lib/supabase/server";
-import type { StatutAppel, StatutPaiement, TypePersonne } from "@/lib/types/database";
+import type {
+  MoyenPaiement,
+  StatutAppel,
+  StatutPaiement,
+  TypePersonne,
+} from "@/lib/types/database";
 
 export interface MembreGroupe {
   id: string;
@@ -14,13 +19,27 @@ export interface LotReleve {
   quotePart: number;
 }
 
-export interface MouvementReleve {
-  date: string;
-  libelle: string;
-  montant: number;
-  sens: "du" | "paye";
-  statut: string;
-}
+// Un mouvement porte des codes et des données, jamais un libellé rédigé :
+// c'est l'écran qui le met en mots, dans la langue de la personne
+// (messages/*.json, `Releve.mouvement*`, `StatutAppelReleve.*`, etc.).
+export type MouvementReleve =
+  | {
+      type: "appel";
+      date: string;
+      reference: string;
+      periodeLibelle: string | null;
+      montant: number;
+      sens: "du";
+      statut: StatutAppel;
+    }
+  | {
+      type: "paiement";
+      date: string;
+      moyen: MoyenPaiement;
+      montant: number;
+      sens: "paye";
+      statut: StatutPaiement;
+    };
 
 export interface ReleveProprietaire {
   proprietaireId: string;
@@ -42,21 +61,6 @@ export interface ReleveProprietaire {
 export type ResultatReleve =
   | { type: "redirection"; versProprietaireId: string }
   | { type: "releve"; releve: ReleveProprietaire };
-
-const LIBELLES_STATUT_APPEL: Record<StatutAppel, string> = {
-  brouillon: "Brouillon",
-  emis: "Émis",
-  partiel: "Partiellement payé",
-  solde: "Soldé",
-  annule: "Annulé",
-};
-
-const LIBELLES_STATUT_PAIEMENT: Record<StatutPaiement, string> = {
-  en_attente: "En attente",
-  confirme: "Confirmé",
-  echoue: "Échoué",
-  rembourse: "Remboursé",
-};
 
 export async function chargerReleve(proprietaireId: string): Promise<ResultatReleve | null> {
   const supabase = await creerClientServeur();
@@ -172,23 +176,27 @@ export async function chargerReleve(proprietaireId: string): Promise<ResultatRel
     .reduce((total, paiement) => total + paiement.montant, 0);
 
   const mouvements: MouvementReleve[] = [
-    ...(appels ?? []).map((appel) => {
-      const libellePeriode = libellePeriodeParId.get(appel.periode_id);
-      return {
+    ...(appels ?? []).map(
+      (appel): MouvementReleve => ({
+        type: "appel",
         date: appel.date_echeance,
-        libelle: `Appel ${appel.reference}${libellePeriode ? ` — ${libellePeriode}` : ""}`,
+        reference: appel.reference,
+        periodeLibelle: libellePeriodeParId.get(appel.periode_id) ?? null,
         montant: appel.montant_total,
-        sens: "du" as const,
-        statut: LIBELLES_STATUT_APPEL[appel.statut],
-      };
-    }),
-    ...(paiements ?? []).map((paiement) => ({
-      date: paiement.date_paiement,
-      libelle: `Paiement ${paiement.moyen}`,
-      montant: paiement.montant,
-      sens: "paye" as const,
-      statut: LIBELLES_STATUT_PAIEMENT[paiement.statut],
-    })),
+        sens: "du",
+        statut: appel.statut,
+      }),
+    ),
+    ...(paiements ?? []).map(
+      (paiement): MouvementReleve => ({
+        type: "paiement",
+        date: paiement.date_paiement,
+        moyen: paiement.moyen,
+        montant: paiement.montant,
+        sens: "paye",
+        statut: paiement.statut,
+      }),
+    ),
   ].sort((a, b) => (a.date < b.date ? 1 : -1));
 
   return {
