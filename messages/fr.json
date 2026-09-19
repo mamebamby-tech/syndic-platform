@@ -70,7 +70,7 @@
       "categorie": "Catégorie de suivi",
       "fournisseur": "Fournisseur",
       "cleRepartition": "Clé de répartition",
-      "montant": "Montant (XOF)"
+      "montant": "Montant ({devise})"
     },
     "aZero": "à zéro",
     "totalChargesCommunes": "Charges communes",
@@ -99,9 +99,18 @@
       "envoi": "Envoi",
       "montant": "Montant"
     },
-    "envoiBloque": "bloqué",
-    "envoiPret": "prêt",
-    "envoiBloqueDetail": "Envoi bloqué : {anomalies}."
+    "envoi": {
+      "pret": "prêt",
+      "whatsapp_seulement": "WhatsApp seulement",
+      "courriel_seulement": "courriel seulement",
+      "injoignable": "injoignable"
+    },
+    "envoiDetail": {
+      "whatsapp_seulement": "Envoi par WhatsApp seulement : courriel indisponible ({motif}).",
+      "courriel_seulement": "Envoi par courriel seulement : WhatsApp indisponible ({motif}).",
+      "injoignable": "Injoignable : aucun canal disponible ({motif})."
+    },
+    "emissionBloquee": "Émission impossible : coordonnées bancaires du syndicat à renseigner."
   },
   "StatutAppel": {
     "brouillon": "Brouillon",
@@ -132,7 +141,7 @@
     "cheque": "Chèque"
   },
   "AnomalieContact": {
-    "telephone_absent": "aucun numéro de téléphone",
+    "telephone_absent": "aucun numéro WhatsApp",
     "email_absent": "aucune adresse électronique",
     "email_invalide": "adresse électronique invalide"
   },
@@ -179,18 +188,39 @@
         "montant": "Montant"
       },
       "totalAppele": "Total appelé",
+      "reglement": {
+        "titre": "Modalités de règlement",
+        "moyens": "Moyens de règlement acceptés",
+        "moyensARenseigner": "Moyens de règlement à renseigner",
+        "compte": "Coordonnées bancaires du syndicat",
+        "compteARenseigner": "Coordonnées bancaires à renseigner",
+        "titulaire": "Titulaire du compte",
+        "banque": "Banque",
+        "numero": "Numéro de compte",
+        "bic": "BIC",
+        "reference": "Référence à rappeler",
+        "consigne": "Rappelez cette référence dans le libellé de votre règlement."
+      },
       "ninea": "NINEA {valeur}",
       "rccm": "RCCM {valeur}"
+    },
+    "moyens": {
+      "wave": "Wave",
+      "orange_money": "Orange Money",
+      "virement": "Virement",
+      "virement_international": "Virement international",
+      "especes": "Espèces",
+      "cheque": "Chèque"
     }
   },
   "Notifications": {
     "appel_emis": {
       "email": {
         "sujet": "Appel de fonds {reference} — {periode}",
-        "corps": "Bonjour,\n\nVotre appel de fonds {reference} pour la période {periode} est disponible.\n\nMontant appelé : {montant, number, xof}\nÉchéance : {echeance, date, dateJuridique}\n\n{cabinet}"
+        "corps": "Bonjour,\n\nVotre appel de fonds {reference} pour la période {periode} est disponible.\n\nMontant appelé : {montant}\nÉchéance : {echeance}\n\n{cabinet}"
       },
       "whatsapp": {
-        "corps": "{cabinet} : votre appel de fonds {reference} ({periode}) est disponible. Montant : {montant, number, xof}, échéance le {echeance, date, dateJuridique}."
+        "corps": "{cabinet} : votre appel de fonds {reference} ({periode}) est disponible. Montant : {montant}, échéance le {echeance}."
       }
     }
   }

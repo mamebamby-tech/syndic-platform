@@ -1,7 +1,8 @@
-import { createTranslator } from "next-intl";
+import { createFormatter, createTranslator } from "next-intl";
 import { formats, FUSEAU } from "@/i18n/formats";
 import { localeDe, normaliserLangue } from "@/lib/i18n/config";
 import { chargerMessages } from "@/lib/i18n/messages";
+import { valeursDe } from "@/lib/i18n/valeurs";
 
 // Gabarits de notification (courriel, WhatsApp). La langue est celle du
 // DESTINATAIRE — `proprietaires.langue` — pas celle du syndic qui déclenche
@@ -76,9 +77,14 @@ export async function rendreNotification(
         timeZone: FUSEAU,
         namespace: "Notifications.appel_emis",
       });
+      // Montant et date arrivent déjà en mots : FCFA et « 1er octobre » ne
+      // sont pas l'affaire d'un format ICU (voir lib/i18n/valeurs.ts).
+      const locale = localeDe(langue);
+      const affichage = valeursDe(createFormatter({ locale, formats, timeZone: FUSEAU }), locale);
       const valeurs = {
         ...demande.chargeUtile,
-        echeance: new Date(demande.chargeUtile.echeance),
+        montant: affichage.montant(demande.chargeUtile.montant),
+        echeance: affichage.dateJuridique(demande.chargeUtile.echeance),
       };
 
       return demande.canal === "email"

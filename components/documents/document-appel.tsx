@@ -18,7 +18,7 @@ export function DocumentAppel({
   contexte: ContexteDocument;
   appel: AppelDetail;
 }) {
-  const { t, format, version } = outilsDocument(document);
+  const { t, format, valeurs, version } = outilsDocument(document);
 
   const piedDePage = [
     contexte.organisationAdresse,
@@ -52,15 +52,11 @@ export function DocumentAppel({
         <dt className="text-encre-3">{t("Appel.destinataire")}</dt>
         <dd className="text-encre">{appel.proprietaireNom}</dd>
         <dt className="text-encre-3">{t("Appel.echeance")}</dt>
-        <dd className="tabular-nums text-encre">
-          {format.dateTime(new Date(appel.dateEcheance), "dateJuridique")}
-        </dd>
+        <dd className="tabular-nums text-encre">{valeurs.dateJuridique(appel.dateEcheance)}</dd>
         {appel.reportAnterieur !== 0 && (
           <>
             <dt className="text-encre-3">{t("Appel.reportAnterieur")}</dt>
-            <dd className="tabular-nums text-encre">
-              {format.number(appel.reportAnterieur, "xof")}
-            </dd>
+            <dd className="tabular-nums text-encre">{valeurs.montant(appel.reportAnterieur)}</dd>
           </>
         )}
       </dl>
@@ -84,7 +80,7 @@ export function DocumentAppel({
                   {format.number(ligne.baseCalcul)}
                 </td>
                 <td className="py-1.5 text-right tabular-nums text-encre">
-                  {format.number(ligne.montant, "xof")}
+                  {valeurs.montant(ligne.montant)}
                 </td>
               </tr>
             ))}
@@ -95,12 +91,63 @@ export function DocumentAppel({
                 {t("Appel.totalAppele")}
               </td>
               <td className="pt-3 text-right tabular-nums">
-                {format.number(appel.montantTotal, "xof")}
+                {valeurs.montant(appel.montantTotal)}
               </td>
             </tr>
           </tfoot>
         </table>
       </div>
+
+      {/* Le compte du syndicat n'existe pas encore : un emplacement explicite
+          remplace les coordonnées, et la base refuse d'émettre l'appel tant
+          qu'il est là (20260919090000_modalites_reglement.sql). */}
+      <section className="mt-6">
+        <h3 className="border-b border-marque pb-1 font-serif text-base text-marque">
+          {t("Appel.reglement.titre")}
+        </h3>
+
+        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+          <dt className="text-encre-3">{t("Appel.reglement.moyens")}</dt>
+          <dd className="text-encre">
+            {contexte.moyensPaiementAcceptes.length > 0 ? (
+              format.list(
+                contexte.moyensPaiementAcceptes.map((moyen) => t(`moyens.${moyen}`)),
+                { type: "unit", style: "long" },
+              )
+            ) : (
+              <span className="text-alerte">{t("Appel.reglement.moyensARenseigner")}</span>
+            )}
+          </dd>
+
+          {contexte.compteSyndicat ? (
+            <>
+              <dt className="text-encre-3">{t("Appel.reglement.titulaire")}</dt>
+              <dd className="text-encre">{contexte.compteSyndicat.titulaire}</dd>
+              <dt className="text-encre-3">{t("Appel.reglement.banque")}</dt>
+              <dd className="text-encre">{contexte.compteSyndicat.banque}</dd>
+              <dt className="text-encre-3">{t("Appel.reglement.numero")}</dt>
+              <dd className="tabular-nums text-encre">{contexte.compteSyndicat.numero}</dd>
+              {contexte.compteSyndicat.bic && (
+                <>
+                  <dt className="text-encre-3">{t("Appel.reglement.bic")}</dt>
+                  <dd className="tabular-nums text-encre">{contexte.compteSyndicat.bic}</dd>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <dt className="text-encre-3">{t("Appel.reglement.compte")}</dt>
+              <dd className="rounded-control border border-dashed border-alerte px-2 py-1 text-alerte">
+                {t("Appel.reglement.compteARenseigner")}
+              </dd>
+            </>
+          )}
+
+          <dt className="text-encre-3">{t("Appel.reglement.reference")}</dt>
+          <dd className="font-medium tabular-nums text-encre">{appel.reference}</dd>
+        </dl>
+        <p className="mt-2 text-xs text-encre-3">{t("Appel.reglement.consigne")}</p>
+      </section>
 
       {piedDePage && (
         <footer className="mt-8 border-t border-filet pt-4 text-xs text-encre-3">

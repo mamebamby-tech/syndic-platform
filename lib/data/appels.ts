@@ -1,7 +1,12 @@
 import "server-only";
 import { creerClientServeur } from "@/lib/supabase/server";
-import { anomaliesContact, type AnomalieContact } from "@/lib/data/anomalie-contact";
-import type { StatutAppel } from "@/lib/types/database";
+import {
+  anomaliesContact,
+  etatEnvoi,
+  type AnomalieContact,
+  type EtatEnvoi,
+} from "@/lib/data/anomalie-contact";
+import type { MoyenPaiement, StatutAppel } from "@/lib/types/database";
 
 export interface LigneAppelDetail {
   lotNumero: number;
@@ -20,8 +25,19 @@ export interface AppelDetail {
   dateEmission: string | null;
   proprietaireId: string;
   proprietaireNom: string;
+  // Anomalies de contact (détail) et état d'envoi qui en découle, par canal.
   anomalies: AnomalieContact[];
+  envoi: EtatEnvoi;
   lignes: LigneAppelDetail[];
+}
+
+// Coordonnées bancaires du syndicat. `null` tant qu'elles ne sont pas
+// renseignées : l'émission des appels est alors bloquée (base de données).
+export interface CompteSyndicat {
+  titulaire: string;
+  banque: string;
+  numero: string;
+  bic: string | null;
 }
 
 export interface ContexteDocument {
@@ -32,11 +48,28 @@ export interface ContexteDocument {
   organisationRccm: string | null;
   immeubleNom: string;
   periodeLibelle: string;
+  compteSyndicat: CompteSyndicat | null;
+  moyensPaiementAcceptes: MoyenPaiement[];
 }
 
 export interface AppelsPeriode {
   appels: AppelDetail[];
   contexte: ContexteDocument;
+}
+
+// « Renseigné » = titulaire, banque et numéro non vides — la même définition
+// que app.coordonnees_bancaires_completes, qui bloque l'émission en base.
+function compteRenseigne(immeuble: {
+  compte_titulaire: string | null;
+  compte_banque: string | null;
+  compte_numero: string | null;
+  compte_bic: string | null;
+}): CompteSyndicat | null {
+  const titulaire = immeuble.compte_titulaire?.trim();
+  const banque = immeuble.compte_banque?.trim();
+  const numero = immeuble.compte_numero?.trim();
+  if (!titulaire || !banque || !numero) return null;
+  return { titulaire, banque, numero, bic: immeuble.compte_bic?.trim() || null };
 }
 
 export async function listerAppelsDeLaPeriode(
@@ -48,7 +81,13 @@ export async function listerAppelsDeLaPeriode(
 
   const [{ data: immeuble, error: erreurImmeuble }, { data: appels, error: erreurAppels }] =
     await Promise.all([
-      supabase.from("immeubles").select("id, nom, organisation_id").eq("id", immeubleId).single(),
+      supabase
+        .from("immeubles")
+        .select(
+          "id, nom, organisation_id, compte_titulaire, compte_banque, compte_numero, compte_bic, moyens_paiement_acceptes",
+        )
+        .eq("id", immeubleId)
+        .single(),
       supabase
         .from("appels")
         .select(
@@ -83,6 +122,8 @@ export async function listerAppelsDeLaPeriode(
     organisationRccm: organisation.rccm,
     immeubleNom: immeuble.nom,
     periodeLibelle,
+    compteSyndicat: compteRenseigne(immeuble),
+    moyensPaiementAcceptes: immeuble.moyens_paiement_acceptes,
   };
 
   const appelIds = (appels ?? []).map((appel) => appel.id);
@@ -167,6 +208,7 @@ export async function listerAppelsDeLaPeriode(
       proprietaireId: appel.proprietaire_id,
       proprietaireNom: proprietaire?.nom ?? "",
       anomalies: proprietaire ? anomaliesContact(proprietaire) : [],
+      envoi: proprietaire ? etatEnvoi(proprietaire) : "injoignable",
       lignes: (lignesParAppel.get(appel.id) ?? []).sort((a, b) => a.lotNumero - b.lotNumero),
     };
   });

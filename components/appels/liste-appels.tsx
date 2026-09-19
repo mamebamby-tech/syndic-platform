@@ -3,9 +3,20 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
+import type { EtatEnvoi } from "@/lib/data/anomalie-contact";
+import { useValeurs } from "@/lib/i18n/utiliser-valeurs";
 import type { AppelDetail, ContexteDocument } from "@/lib/data/appels";
 import { DocumentAppel } from "@/components/documents/document-appel";
 import type { DocumentLocalise } from "@/lib/i18n/document";
+
+// Seul « injoignable » est rouge : un propriétaire joignable par un seul
+// canal reçoit son appel, il faut seulement savoir par lequel.
+const CLASSE_ENVOI: Record<EtatEnvoi, string> = {
+  pret: "text-encre-3",
+  whatsapp_seulement: "rounded-control bg-alerte-doux px-1.5 py-0.5 text-xs text-alerte",
+  courriel_seulement: "rounded-control bg-alerte-doux px-1.5 py-0.5 text-xs text-alerte",
+  injoignable: "rounded-control bg-impaye-doux px-1.5 py-0.5 text-xs text-impaye",
+};
 
 export function ListeAppels({
   immeubleId,
@@ -22,6 +33,7 @@ export function ListeAppels({
   const tStatut = useTranslations("StatutAppel");
   const tAnomalie = useTranslations("AnomalieContact");
   const format = useFormatter();
+  const valeurs = useValeurs();
   const [recherche, setRecherche] = useState("");
   const [appelSelectionneId, setAppelSelectionneId] = useState(appels[0]?.id ?? null);
 
@@ -82,16 +94,10 @@ export function ListeAppels({
                   </td>
                   <td className="px-4 py-3 text-encre-2">{tStatut(appel.statut)}</td>
                   <td className="px-4 py-3">
-                    {appel.anomalies.length > 0 ? (
-                      <span className="rounded-control bg-impaye-doux px-1.5 py-0.5 text-xs text-impaye">
-                        {t("envoiBloque")}
-                      </span>
-                    ) : (
-                      <span className="text-encre-3">{t("envoiPret")}</span>
-                    )}
+                    <span className={CLASSE_ENVOI[appel.envoi]}>{t(`envoi.${appel.envoi}`)}</span>
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-encre">
-                    {format.number(appel.montantTotal, "xof")}
+                    {valeurs.montant(appel.montantTotal)}
                   </td>
                 </tr>
               ))}
@@ -101,12 +107,23 @@ export function ListeAppels({
       </div>
 
       <div>
-        {appelSelectionne && appelSelectionne.anomalies.length > 0 && (
-          // Avertissement de l'application, pas du document : il suit la
-          // langue de la personne, alors que le document reste opposable.
-          <p className="mb-4 rounded-control bg-impaye-doux px-3 py-2 text-sm text-impaye">
-            {t("envoiBloqueDetail", {
-              anomalies: format.list(
+        {/* Avertissements de l'application, pas du document : ils suivent la
+            langue de la personne, alors que le document reste opposable. */}
+        {contexte.compteSyndicat === null && (
+          <p className="mb-4 rounded-control bg-alerte-doux px-3 py-2 text-sm text-alerte">
+            {t("emissionBloquee")}
+          </p>
+        )}
+        {appelSelectionne && appelSelectionne.envoi !== "pret" && (
+          <p
+            className={`mb-4 rounded-control px-3 py-2 text-sm ${
+              appelSelectionne.envoi === "injoignable"
+                ? "bg-impaye-doux text-impaye"
+                : "bg-alerte-doux text-alerte"
+            }`}
+          >
+            {t(`envoiDetail.${appelSelectionne.envoi}`, {
+              motif: format.list(
                 appelSelectionne.anomalies.map((anomalie) => tAnomalie(anomalie)),
                 { type: "unit", style: "long" },
               ),

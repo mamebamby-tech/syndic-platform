@@ -101,17 +101,18 @@ Ce ne sont pas des termes mais elles conditionnent l'affichage :
   Amérique et le 1er octobre partout ailleurs.
 - **Dates juridiques et financières — arrêté (19/09/2026) : mois en toutes
   lettres, jamais en chiffres.** Échéance, mouvement, convocation, séance :
-  « 1 October 2026 », « 1 octobre 2026 ». Un seul format de date existe
-  (`dateJuridique`, `i18n/formats.ts`) et un test scrute le code pour qu'aucune
+  « 1 October 2026 », « 1 octobre 2026 ». Seuls deux formats de date existent
+  (`dateJuridique` et sa forme abrégée, `i18n/formats.ts`) et un test scrute le code pour qu'aucune
   date numérique ne s'y glisse. La règle vaut dans toutes les langues, français
   compris.
-  *Point de typographie ouvert :* en français juridique on écrit « 1er octobre
-  2026 » ; `Intl` produit « 1 octobre 2026 ». Le sens est le même et aucune
-  ambiguïté n'existe ; corriger le « er » demande un traitement dédié du premier
-  du mois dans le document opposable.
-- **Devise.** XOF dans toutes les langues, affichée par son code ISO, sans
-  conversion (`i18n/formats.ts`). Ne pas traduire le nom de la monnaie dans le
-  corps des documents.
+  **Le premier du mois s'écrit « 1er octobre 2026 » en français** (arrêté le
+  19/09/2026) : `Intl` produit « 1 octobre », la sortie est post-traitée
+  (`premierDuMois`) sans toucher « 11 », « 21 » ni « 31 ». La forme abrégée
+  « 1er oct. 2026 » est acceptable dans les tableaux denses (relevé) ; en
+  anglais britannique : « 1 October 2026 » et « 1 Oct 2026 ».
+- **Devise — arrêté (19/09/2026).** XOF est le code stocké ; **FCFA** en
+  français, comme dans tous les documents du cabinet ; XOF en anglais. Aucune
+  conversion : seule l'étiquette change (`lib/i18n/valeurs.ts`).
 - **Mention de non-opposabilité.** Le texte de `Documents.mentions.courtoisie`
   est *juridique* : sa traduction est validée par un juriste au même titre que
   les termes ci-dessus.

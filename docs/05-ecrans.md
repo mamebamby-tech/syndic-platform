@@ -22,10 +22,13 @@ Signalement des postes encore à zéro. Bandeau rappelant le point ouvert sur la
 clé des charges d'ascenseur.
 
 ### Appels de fonds
-Liste des appels générés, filtrable. Colonne « envoi » avec les destinataires
-bloqués par une anomalie de contact. Aperçu du document nominatif à droite, à
-l'identité du cabinet. Bouton d'envoi groupé, qui refuse les destinataires
-invalides plutôt que de les perdre en silence.
+Liste des appels générés, filtrable. Colonne « envoi » avec l'état **par
+canal** de chaque destinataire : prêt, WhatsApp seulement, courriel seulement,
+injoignable (rouge, seul état bloquant). Aperçu du document nominatif à droite,
+à l'identité du cabinet, avec son bloc « Modalités de règlement » ; un bandeau
+signale que l'émission est impossible tant que les coordonnées bancaires du
+syndicat ne sont pas renseignées. Bouton d'envoi groupé, qui refuse les
+destinataires injoignables plutôt que de les perdre en silence.
 
 ### Relevé consolidé
 La fiche d'un copropriétaire : ses lots, ses tantièmes, son dû, ses mouvements.

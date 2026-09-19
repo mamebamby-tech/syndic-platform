@@ -96,6 +96,6 @@ npm run types:db    # régénère lib/types/database.ts depuis le schéma (Docke
 
 - Le domaine parle français (`appels`, `tantiemes`, `proprietaires`), la
   technique parle anglais.
-- Montants en `numeric(14,2)`, devise XOF, jamais de `float`.
+- Montants en `numeric(14,2)`, devise XOF (affichée « FCFA » en français), jamais de `float`.
 - Toute nouvelle table arrive avec sa politique de sécurité par ligne dans la
   même migration.

@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
+import { getValeurs } from "@/lib/i18n/valeurs-serveur";
 import { chargerReleve } from "@/lib/data/releve";
 
 export default async function PageReleveProprietaire({
@@ -24,6 +25,7 @@ export default async function PageReleveProprietaire({
   const tStatutPaiement = await getTranslations("StatutPaiement");
   const tMoyen = await getTranslations("MoyenPaiement");
   const format = await getFormatter();
+  const valeurs = await getValeurs();
 
   return (
     <div>
@@ -49,12 +51,12 @@ export default async function PageReleveProprietaire({
         <div className="rounded-card border border-filet bg-surface p-4">
           <p className="text-xs uppercase tracking-wide text-encre-3">{t("totalAppele")}</p>
           <p className="mt-1 text-xl tabular-nums text-encre">
-            {format.number(releve.totalAppele, "xof")}
+            {valeurs.montant(releve.totalAppele)}
           </p>
         </div>
         <div className="rounded-card border border-filet bg-surface p-4">
           <p className="text-xs uppercase tracking-wide text-encre-3">{t("totalPaye")}</p>
-          <p className="mt-1 text-xl tabular-nums text-encre">{format.number(releve.totalPaye, "xof")}</p>
+          <p className="mt-1 text-xl tabular-nums text-encre">{valeurs.montant(releve.totalPaye)}</p>
         </div>
         <div className="rounded-card border border-filet bg-surface p-4">
           <p className="text-xs uppercase tracking-wide text-encre-3">{t("soldeDu")}</p>
@@ -63,7 +65,7 @@ export default async function PageReleveProprietaire({
               releve.solde > 0 ? "text-impaye" : "text-encre"
             }`}
           >
-            {format.number(releve.solde, "xof")}
+            {valeurs.montant(releve.solde)}
           </p>
         </div>
       </div>
@@ -121,7 +123,7 @@ export default async function PageReleveProprietaire({
                 {releve.mouvements.map((mouvement, index) => (
                   <tr key={index} className="border-b border-filet last:border-0">
                     <td className="px-4 py-3 tabular-nums text-encre-2">
-                      {format.dateTime(new Date(mouvement.date), "dateJuridique")}
+                      {valeurs.dateCourte(mouvement.date)}
                     </td>
                     <td className="px-4 py-3 text-encre">
                       {mouvement.type === "appel"
@@ -144,7 +146,7 @@ export default async function PageReleveProprietaire({
                       }`}
                     >
                       {mouvement.sens === "du" ? "+" : "−"}
-                      {format.number(mouvement.montant, "xof")}
+                      {valeurs.montant(mouvement.montant)}
                     </td>
                   </tr>
                 ))}

@@ -154,14 +154,32 @@ ligne, jamais une modification de l'ancienne.
 
 ## 7. Qualité des données — contrôles à l'import
 
-Le registre réel comporte quatre anomalies qui bloquent un envoi :
+Le registre réel comporte quatre anomalies de contact. **Aucune ne rend un
+copropriétaire injoignable** : chacune prive d'un canal et en laisse un valide.
+L'état d'envoi se lit **par canal**, pas globalement :
 
-| Lot | Anomalie |
+| État d'envoi | Canaux valides |
 |---|---|
-| 14 | aucun numéro de téléphone |
-| 26 | aucune adresse électronique |
-| 32 | aucun numéro de téléphone |
-| 48 | adresse électronique invalide (`kaneousmane441`, sans domaine) |
+| prêt | WhatsApp et courriel |
+| WhatsApp seulement | WhatsApp |
+| courriel seulement | courriel |
+| injoignable | aucun |
+
+Le numéro stocké dans `proprietaires.telephone` est un **numéro WhatsApp** :
+c'est l'intitulé de la colonne du registre source, pas un téléphone générique.
+Le canal WhatsApp repose donc sur lui.
+
+| Lot | Anomalie | Canal manquant | Canal valide | État d'envoi |
+|---|---|---|---|---|
+| 14 | aucun numéro WhatsApp | WhatsApp | courriel | courriel seulement |
+| 26 | aucune adresse électronique | courriel | WhatsApp | WhatsApp seulement |
+| 32 | aucun numéro WhatsApp | WhatsApp | courriel | courriel seulement |
+| 48 | adresse électronique invalide (`kaneousmane441`, sans domaine) | courriel | WhatsApp | WhatsApp seulement |
+
+Bilan sur les 21 entités du registre : 17 prêtes, 2 WhatsApp seulement, 2
+courriel seulement, **0 injoignable**. Seule l'absence des deux canaux bloque
+un envoi ; une anomalie sur un seul est un signalement, pas un blocage.
+Une adresse sans arobase n'ouvre pas le canal courriel.
 
 Et deux adresses partagées par des personnes différentes :
 `contact.partage@example.com` (Emre Yilmaz et Moussa Ba) et

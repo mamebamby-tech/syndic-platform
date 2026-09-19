@@ -2,6 +2,7 @@ import { createFormatter, createTranslator } from "next-intl";
 import { formats, FUSEAU } from "@/i18n/formats";
 import { LANGUE_OPPOSABLE, localeDe, type Langue } from "@/lib/i18n/config";
 import type { Messages } from "@/lib/i18n/messages";
+import { valeursDe } from "@/lib/i18n/valeurs";
 
 // Documents juridiques — appel de cotisation, convocation, procès-verbal.
 //
@@ -47,10 +48,8 @@ export function outilsDocument({ version, messages }: DocumentLocalise) {
     timeZone: FUSEAU,
     namespace: "Documents",
   });
-  const format = createFormatter({
-    locale: localeDe(version.langue),
-    formats,
-    timeZone: FUSEAU,
-  });
-  return { t, format, version };
+  const locale = localeDe(version.langue);
+  const format = createFormatter({ locale, formats, timeZone: FUSEAU });
+  // Montants (FCFA) et dates (« 1er octobre 2026 ») dans la langue du DOCUMENT.
+  return { t, format, valeurs: valeursDe(format, locale), version };
 }

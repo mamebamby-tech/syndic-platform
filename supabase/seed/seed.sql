@@ -23,8 +23,12 @@ insert into organisations (nom, slug, ninea, rccm, adresse, email)
 values ('ENIGMA AFRICA SARL', 'enigma-africa', '010008391 2R2', 'SN.DKR.2023.B.2743',
         'Cité Keur Damel, Villa N°17, Dakar', 'enigma@enigmasn.com');
 
-insert into immeubles (organisation_id, nom, adresse, ville, pays, titre_foncier)
-select id, 'Mamelles Tower', 'Corniche des Mamelles, Ngor-Almadies', 'Dakar', 'SN', 'TF n°26821/NGA'
+-- code_reference : préfixe des références d'appel (MT-2026T4-007).
+-- Les coordonnées bancaires du syndicat (compte_*) restent VIDES : le compte
+-- n'existe pas encore (docs/06-decisions.md, question n°1), et l'émission des
+-- appels est bloquée tant qu'elles le sont.
+insert into immeubles (organisation_id, nom, adresse, ville, pays, titre_foncier, code_reference)
+select id, 'Mamelles Tower', 'Corniche des Mamelles, Ngor-Almadies', 'Dakar', 'SN', 'TF n°26821/NGA', 'MT'
 from organisations where slug = 'enigma-africa';
 
 -- ---------------------------------------------------------------------

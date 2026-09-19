@@ -74,6 +74,13 @@ export interface Database {
           pays: string;
           titre_foncier: string | null;
           devise: string;
+          code_reference: string | null;
+          format_reference_appel: string;
+          compte_titulaire: string | null;
+          compte_banque: string | null;
+          compte_numero: string | null;
+          compte_bic: string | null;
+          moyens_paiement_acceptes: MoyenPaiement[];
           cree_le: string;
         };
         Insert: Partial<Database["public"]["Tables"]["immeubles"]["Row"]> & {
@@ -310,6 +317,7 @@ export interface Database {
           periode_id: string;
           proprietaire_id: string;
           reference: string;
+          numero: number | null;
           montant_total: number;
           report_anterieur: number;
           date_emission: string | null;

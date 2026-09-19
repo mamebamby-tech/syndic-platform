@@ -1,4 +1,5 @@
 import { getFormatter, getTranslations } from "next-intl/server";
+import { getValeurs } from "@/lib/i18n/valeurs-serveur";
 import { trouverPeriodeCourante } from "@/lib/data/periodes";
 import { chargerBudget } from "@/lib/data/budget";
 import { SelecteurCle } from "@/components/budget/selecteur-cle";
@@ -19,6 +20,7 @@ export default async function PageBudget({
   const t = await getTranslations("Budget");
   const tCommun = await getTranslations("Commun");
   const format = await getFormatter();
+  const valeurs = await getValeurs();
   const categorieConnue = (categorie: string): categorie is CategorieConnue =>
     t.has(`categories.${categorie}` as "categories.general");
 
@@ -43,7 +45,7 @@ export default async function PageBudget({
           <p className="mt-1 text-sm text-encre-2">
             {t("exerciceEcheance", {
               exercice: periode.exerciceLibelle,
-              echeance: format.dateTime(new Date(periode.dateEcheance), "dateJuridique"),
+              echeance: valeurs.dateJuridique(periode.dateEcheance),
             })}
             {budget.nombrePostesAZero > 0 && (
               <>
@@ -89,7 +91,7 @@ export default async function PageBudget({
               <th className="px-4 py-3 font-medium">{t("colonnes.categorie")}</th>
               <th className="px-4 py-3 font-medium">{t("colonnes.fournisseur")}</th>
               <th className="px-4 py-3 font-medium">{t("colonnes.cleRepartition")}</th>
-              <th className="px-4 py-3 text-right font-medium">{t("colonnes.montant")}</th>
+              <th className="px-4 py-3 text-right font-medium">{t("colonnes.montant", { devise: valeurs.devise })}</th>
             </tr>
           </thead>
           <tbody>
