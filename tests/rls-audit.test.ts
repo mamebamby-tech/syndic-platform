@@ -43,6 +43,7 @@ describe("audit RLS — toutes les tables du schéma public", () => {
   let unProprietaireId: string;
   let unAutreProprietaireId: string;
   let unPosteChargeId: string;
+  let exerciceAuditId: string;
 
   let userGestionnaireMamelles: string;
   let userGestionnaireAutreCabinet: string;
@@ -105,13 +106,23 @@ describe("audit RLS — toutes les tables du schéma public", () => {
     );
     unPosteChargeId = poste[0]!.id;
 
-    const { rows: periode } = await client.query<{ id: string; date_echeance: string }>(
-      `select p.id, p.date_echeance from periodes p
-       join exercices e on e.id = p.exercice_id
-       where e.immeuble_id = $1 order by p.date_debut desc limit 1`,
+    // Période FICTIVE, propre à ce test. Utiliser la période la plus récente
+    // de l'immeuble dépendait de l'absence de données réelles : dès que les
+    // appels réels sont générés, `unique (periode_id, proprietaire_id)` fait
+    // échouer l'insertion ci-dessous. Supprimée avec son exercice en fin de test.
+    const exercice = await client.query<{ id: string }>(
+      `insert into exercices (immeuble_id, libelle, date_debut, date_fin)
+       values ($1, 'Exercice test audit RLS', '2098-01-01', '2098-12-31') returning id`,
       [mamellesImmeubleId],
     );
-    const periodeMamelles = periode[0]!;
+    exerciceAuditId = exercice.rows[0]!.id;
+    const periode = await client.query<{ id: string; date_echeance: string }>(
+      `insert into periodes (exercice_id, libelle, date_debut, date_fin, date_echeance)
+       values ($1, 'Période test audit RLS', '2098-01-01', '2098-03-31', '2098-01-01')
+       returning id, date_echeance`,
+      [exerciceAuditId],
+    );
+    const periodeMamelles = periode.rows[0]!;
 
     // --- Deux cabinets fictifs, pour la simulation de rôle ---
     const org = await client.query<{ id: string }>(
@@ -256,6 +267,7 @@ describe("audit RLS — toutes les tables du schéma public", () => {
     // supprimer explicitement avant l'appel, sinon la ligne reste orpheline.
     await client.query(`delete from paiements where id = $1`, [paiementId]);
     await client.query(`delete from appels where id = $1`, [appelId]);
+    await client.query(`delete from exercices where id = $1`, [exerciceAuditId]);
     await client.query(`delete from assemblees where id = $1`, [assembleeId]);
     await client.query(`delete from documents where id = $1`, [documentId]);
     await client.query(`delete from annonces where id = $1`, [annonceId]);
