@@ -1,0 +1,437 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { Client } from "pg";
+import { connecter } from "./pg";
+import { commeUtilisateur } from "./simuler-utilisateur";
+
+// Audit complet de la sécurité par ligne (CLAUDE.md règle n°2), dans le
+// prolongement de tests/rls-multitenant.test.ts. Deux volets :
+//
+// 1. Balayage générique de TOUTES les tables du schéma public : simule un
+//    gestionnaire d'un second cabinet fictif, sans aucun lien avec Mamelles
+//    Tower, et vérifie qu'il n'y voit rien. La liste des tables est lue
+//    dans information_schema, pas recopiée à la main : une nouvelle table
+//    sans politique correcte fait échouer ce test sans qu'il ait besoin
+//    d'être mis à jour.
+//
+// 2. Pour les neuf politiques corrigées par
+//    20260919040000_rls_with_check_audit.sql (with check (true) ou
+//    using (true) d'origine), une tentative d'INSERT ciblée : c'est
+//    précisément ce que le `using` ne protège pas, puisqu'un insert n'a
+//    pas de ligne existante à filtrer — seul le `with check` gouverne.
+//
+// Pour que le balayage générique soit un vrai test et non un passage à
+// vide sur des tables sans données, le beforeAll sème une ligne dans
+// chaque table qui en manque, rattachée à Mamelles Tower.
+
+const TABLES_PROPRES_AU_CABINET = new Set(["organisations", "immeubles", "membres"]);
+
+// Tables où l'appartenance au cabinet ne se lit pas sur une colonne
+// immeuble_id / organisation_id directe : hors du balayage générique par
+// comptage, déjà couvertes autrement (acces_personnes est personnelle,
+// journal est vérifiée par ailleurs, motifs_delai_renforce et
+// types_majorite sont couvertes par le test d'insertion ciblé ci-dessous
+// en plus du balayage générique).
+const TABLES_HORS_BALAYAGE = new Set<string>();
+
+describe("audit RLS — toutes les tables du schéma public", () => {
+  let client: Client;
+  let mamellesImmeubleId: string;
+  let mamellesOrganisationId: string;
+  let mamellesReglementId: string;
+  let mamellesTypeMajoriteOrdinaireId: string;
+  let unLotId: string;
+  let unProprietaireId: string;
+  let unAutreProprietaireId: string;
+  let unPosteChargeId: string;
+
+  let userGestionnaireMamelles: string;
+  let userGestionnaireAutreCabinet: string;
+  let autreOrganisationId: string;
+  let autreImmeubleId: string;
+
+  // Lignes semées pour que le balayage générique ne soit pas vide.
+  let appelId: string;
+  let paiementId: string;
+  let assembleeId: string;
+  let resolutionId: string;
+  let documentId: string;
+  let annonceId: string;
+  let incidentId: string;
+  let notificationId: string;
+  let journalId: string;
+  let occupantId: string;
+  let accesPersonneId: string;
+
+  beforeAll(async () => {
+    client = await connecter();
+
+    const { rows: immeuble } = await client.query<{ id: string; organisation_id: string }>(
+      `select id, organisation_id from immeubles where nom = 'Mamelles Tower'`,
+    );
+    const mamelles = immeuble[0];
+    if (!mamelles) throw new Error("Immeuble 'Mamelles Tower' introuvable.");
+    mamellesImmeubleId = mamelles.id;
+    mamellesOrganisationId = mamelles.organisation_id;
+
+    const { rows: reglement } = await client.query<{ id: string }>(
+      `select id from reglements where immeuble_id = $1 and en_vigueur`,
+      [mamellesImmeubleId],
+    );
+    mamellesReglementId = reglement[0]!.id;
+
+    const { rows: typeMajorite } = await client.query<{ id: string }>(
+      `select id from types_majorite where reglement_id = $1 and code = 'ordinaire'`,
+      [mamellesReglementId],
+    );
+    mamellesTypeMajoriteOrdinaireId = typeMajorite[0]!.id;
+
+    const { rows: lot } = await client.query<{ id: string }>(
+      `select id from lots where immeuble_id = $1 order by numero limit 1`,
+      [mamellesImmeubleId],
+    );
+    unLotId = lot[0]!.id;
+
+    const { rows: proprietaires } = await client.query<{ id: string }>(
+      `select id from proprietaires where immeuble_id = $1 and est_groupe = false
+       order by nom limit 2`,
+      [mamellesImmeubleId],
+    );
+    unProprietaireId = proprietaires[0]!.id;
+    unAutreProprietaireId = proprietaires[1]!.id;
+
+    const { rows: poste } = await client.query<{ id: string }>(
+      `select id from postes_charges where immeuble_id = $1 limit 1`,
+      [mamellesImmeubleId],
+    );
+    unPosteChargeId = poste[0]!.id;
+
+    const { rows: periode } = await client.query<{ id: string; date_echeance: string }>(
+      `select p.id, p.date_echeance from periodes p
+       join exercices e on e.id = p.exercice_id
+       where e.immeuble_id = $1 order by p.date_debut desc limit 1`,
+      [mamellesImmeubleId],
+    );
+    const periodeMamelles = periode[0]!;
+
+    // --- Deux cabinets fictifs, pour la simulation de rôle ---
+    const org = await client.query<{ id: string }>(
+      `insert into organisations (nom, slug) values ('Cabinet Test Audit RLS', 'test-audit-rls')
+       returning id`,
+    );
+    autreOrganisationId = org.rows[0]!.id;
+
+    const autreImmeuble = await client.query<{ id: string }>(
+      `insert into immeubles (organisation_id, nom) values ($1, 'Immeuble Test Audit RLS')
+       returning id`,
+      [autreOrganisationId],
+    );
+    autreImmeubleId = autreImmeuble.rows[0]!.id;
+
+    const userA = await client.query<{ id: string }>(
+      `insert into auth.users (id) values (gen_random_uuid()) returning id`,
+    );
+    userGestionnaireMamelles = userA.rows[0]!.id;
+    await client.query(
+      `insert into membres (organisation_id, user_id, role) values ($1, $2, 'gestionnaire')`,
+      [mamellesOrganisationId, userGestionnaireMamelles],
+    );
+
+    const userB = await client.query<{ id: string }>(
+      `insert into auth.users (id) values (gen_random_uuid()) returning id`,
+    );
+    userGestionnaireAutreCabinet = userB.rows[0]!.id;
+    await client.query(
+      `insert into membres (organisation_id, user_id, role) values ($1, $2, 'gestionnaire')`,
+      [autreOrganisationId, userGestionnaireAutreCabinet],
+    );
+
+    // --- Une ligne par table vide, rattachée à Mamelles Tower, pour que
+    // le balayage générique ne passe jamais à vide. ---
+    const appel = await client.query<{ id: string }>(
+      `insert into appels (periode_id, proprietaire_id, reference, date_echeance)
+       values ($1, $2, 'TEST-AUDIT-RLS', $3) returning id`,
+      [periodeMamelles.id, unProprietaireId, periodeMamelles.date_echeance],
+    );
+    appelId = appel.rows[0]!.id;
+    await client.query(
+      `insert into appel_lignes (appel_id, lot_id, poste_charge_id, base_calcul, montant)
+       values ($1, $2, $3, 1, 0)`,
+      [appelId, unLotId, unPosteChargeId],
+    );
+    await client.query(`insert into mises_en_demeure (appel_id, envoyee_le) values ($1, current_date)`, [
+      appelId,
+    ]);
+    await client.query(
+      `insert into penalites (appel_id, base_calcul, taux_applique, periodes_retard, montant)
+       values ($1, 0, 0, 0, 0)`,
+      [appelId],
+    );
+    const paiement = await client.query<{ id: string }>(
+      `insert into paiements (appel_id, proprietaire_id, montant, moyen) values ($1, $2, 0, 'virement') returning id`,
+      [appelId, unProprietaireId],
+    );
+    paiementId = paiement.rows[0]!.id;
+
+    const assemblee = await client.query<{ id: string }>(
+      `insert into assemblees (immeuble_id, date_seance) values ($1, now()) returning id`,
+      [mamellesImmeubleId],
+    );
+    assembleeId = assemblee.rows[0]!.id;
+    const resolution = await client.query<{ id: string }>(
+      `insert into resolutions (assemblee_id, ordre, titre, type_majorite_id)
+       values ($1, 1, 'Résolution de test', $2) returning id`,
+      [assembleeId, mamellesTypeMajoriteOrdinaireId],
+    );
+    resolutionId = resolution.rows[0]!.id;
+    await client.query(
+      `insert into convocations (assemblee_id, proprietaire_id, canal) values ($1, $2, 'email')`,
+      [assembleeId, unProprietaireId],
+    );
+    await client.query(`insert into presences (assemblee_id, proprietaire_id) values ($1, $2)`, [
+      assembleeId,
+      unProprietaireId,
+    ]);
+    await client.query(
+      `insert into votes (resolution_id, proprietaire_id, sens, voix) values ($1, $2, 'pour', 1)`,
+      [resolutionId, unProprietaireId],
+    );
+
+    const document = await client.query<{ id: string }>(
+      `insert into documents (immeuble_id, categorie, titre, storage_path)
+       values ($1, 'test', 'Document de test', 'test/audit-rls.pdf') returning id`,
+      [mamellesImmeubleId],
+    );
+    documentId = document.rows[0]!.id;
+
+    const annonce = await client.query<{ id: string }>(
+      `insert into annonces (immeuble_id, titre, corps) values ($1, 'Annonce de test', 'Corps') returning id`,
+      [mamellesImmeubleId],
+    );
+    annonceId = annonce.rows[0]!.id;
+
+    const incident = await client.query<{ id: string }>(
+      `insert into incidents (immeuble_id, titre) values ($1, 'Incident de test') returning id`,
+      [mamellesImmeubleId],
+    );
+    incidentId = incident.rows[0]!.id;
+
+    const notification = await client.query<{ id: string }>(
+      `insert into notifications (immeuble_id, canal, gabarit) values ($1, 'email', 'test') returning id`,
+      [mamellesImmeubleId],
+    );
+    notificationId = notification.rows[0]!.id;
+
+    const journal = await client.query<{ id: string }>(
+      `insert into journal (organisation_id, entite, action) values ($1, 'test', 'test') returning id`,
+      [mamellesOrganisationId],
+    );
+    journalId = journal.rows[0]!.id;
+
+    const occupant = await client.query<{ id: string }>(
+      `insert into occupants (lot_id, nom) values ($1, 'Occupant de test') returning id`,
+      [unLotId],
+    );
+    occupantId = occupant.rows[0]!.id;
+
+    const accesPersonne = await client.query<{ id: string }>(
+      `insert into acces_personnes (user_id, proprietaire_id) values ($1, $2) returning id`,
+      [userGestionnaireMamelles, unProprietaireId],
+    );
+    accesPersonneId = accesPersonne.rows[0]!.id;
+
+    void appelId;
+    void paiementId;
+    void assembleeId;
+    void documentId;
+    void annonceId;
+    void incidentId;
+    void notificationId;
+    void journalId;
+    void occupantId;
+    void accesPersonneId;
+  });
+
+  afterAll(async () => {
+    // paiements.appel_id est "on delete set null", pas cascade : à
+    // supprimer explicitement avant l'appel, sinon la ligne reste orpheline.
+    await client.query(`delete from paiements where id = $1`, [paiementId]);
+    await client.query(`delete from appels where id = $1`, [appelId]);
+    await client.query(`delete from assemblees where id = $1`, [assembleeId]);
+    await client.query(`delete from documents where id = $1`, [documentId]);
+    await client.query(`delete from annonces where id = $1`, [annonceId]);
+    await client.query(`delete from incidents where id = $1`, [incidentId]);
+    await client.query(`delete from notifications where id = $1`, [notificationId]);
+    await client.query(`delete from journal where id = $1`, [journalId]);
+    await client.query(`delete from occupants where id = $1`, [occupantId]);
+    await client.query(`delete from acces_personnes where id = $1`, [accesPersonneId]);
+    await client.query(`delete from immeubles where id = $1`, [autreImmeubleId]);
+    await client.query(`delete from organisations where id = $1`, [autreOrganisationId]);
+    await client.query(`delete from auth.users where id = any($1)`, [
+      [userGestionnaireMamelles, userGestionnaireAutreCabinet],
+    ]);
+    await client.end();
+  });
+
+  it("sème au moins une ligne dans chaque table du schéma public", async () => {
+    const { rows: tables } = await client.query<{ tablename: string }>(
+      `select tablename from pg_tables where schemaname = 'public' order by tablename`,
+    );
+    for (const { tablename } of tables) {
+      const { rows } = await client.query<{ n: string }>(
+        `select count(*) as n from ${tablename}`,
+      );
+      expect(Number(rows[0]!.n), `${tablename} est vide : le balayage serait un passage à vide`).toBeGreaterThan(
+        0,
+      );
+    }
+    // Garantit qu'on a bien balayé un ensemble non trivial de tables : si
+    // ce nombre baisse fortement, une table a probablement disparu du schéma.
+    expect(tables.length).toBeGreaterThanOrEqual(30);
+  });
+
+  it("un gestionnaire d'un autre cabinet ne lit aucune ligne hors les siennes, table par table", async () => {
+    const { rows: tables } = await client.query<{ tablename: string }>(
+      `select tablename from pg_tables where schemaname = 'public' order by tablename`,
+    );
+
+    const echecs: string[] = [];
+
+    for (const { tablename } of tables) {
+      if (TABLES_HORS_BALAYAGE.has(tablename)) continue;
+
+      const attendu = TABLES_PROPRES_AU_CABINET.has(tablename) ? 1 : 0;
+
+      const { rows } = await commeUtilisateur(client, userGestionnaireAutreCabinet, () =>
+        client.query<{ n: string }>(`select count(*) as n from ${tablename}`),
+      );
+      const visible = Number(rows[0]!.n);
+
+      if (visible !== attendu) {
+        echecs.push(`${tablename} : attendu ${attendu}, vu ${visible}`);
+      }
+    }
+
+    expect(echecs, echecs.join("\n")).toEqual([]);
+  });
+
+  it("le gestionnaire d'un autre cabinet ne voit ni le nom d'ENIGMA AFRICA ni Mamelles Tower", async () => {
+    const { rows: organisations } = await commeUtilisateur(client, userGestionnaireAutreCabinet, () =>
+      client.query<{ nom: string }>(`select nom from organisations`),
+    );
+    expect(organisations.map((o) => o.nom)).not.toContain("ENIGMA AFRICA SARL");
+
+    const { rows: immeubles } = await commeUtilisateur(client, userGestionnaireAutreCabinet, () =>
+      client.query<{ nom: string }>(`select nom from immeubles`),
+    );
+    expect(immeubles.map((i) => i.nom)).not.toContain("Mamelles Tower");
+  });
+
+  describe("insertions ciblées — with check corrigés par 20260919040000", () => {
+    const casInsertion: Array<{
+      table: string;
+      construireSql: () => { sql: string; params: unknown[] };
+    }> = [
+      {
+        table: "motifs_delai_renforce",
+        construireSql: () => ({
+          sql: `insert into motifs_delai_renforce (reglement_id, code, libelle) values ($1, 'attaque', 'Tentative depuis un autre cabinet')`,
+          params: [mamellesReglementId],
+        }),
+      },
+      {
+        table: "types_majorite",
+        construireSql: () => ({
+          sql: `insert into types_majorite (reglement_id, code, libelle) values ($1, 'attaque', 'Tentative depuis un autre cabinet')`,
+          params: [mamellesReglementId],
+        }),
+      },
+      {
+        table: "appel_lignes",
+        construireSql: () => ({
+          sql: `insert into appel_lignes (appel_id, lot_id, poste_charge_id, base_calcul, montant) values ($1, $2, $3, 1, 100)`,
+          params: [appelId, unLotId, unPosteChargeId],
+        }),
+      },
+      {
+        table: "penalites",
+        construireSql: () => ({
+          sql: `insert into penalites (appel_id, base_calcul, taux_applique, periodes_retard, montant) values ($1, 100, 0.1, 1, 10)`,
+          params: [appelId],
+        }),
+      },
+      {
+        table: "mises_en_demeure",
+        construireSql: () => ({
+          sql: `insert into mises_en_demeure (appel_id, envoyee_le) values ($1, current_date)`,
+          params: [appelId],
+        }),
+      },
+      {
+        table: "lot_proprietaires",
+        construireSql: () => ({
+          sql: `insert into lot_proprietaires (lot_id, proprietaire_id) values ($1, $2)`,
+          params: [unLotId, unProprietaireId],
+        }),
+      },
+      {
+        table: "occupants",
+        construireSql: () => ({
+          sql: `insert into occupants (lot_id, nom) values ($1, 'Occupant intrus')`,
+          params: [unLotId],
+        }),
+      },
+      {
+        table: "resolutions",
+        construireSql: () => ({
+          sql: `insert into resolutions (assemblee_id, ordre, titre, type_majorite_id) values ($1, 2, 'Résolution intruse', $2)`,
+          params: [assembleeId, mamellesTypeMajoriteOrdinaireId],
+        }),
+      },
+      {
+        // proprietaire différent de celui du fixture (assemblee_id, unProprietaireId,
+        // 'email') déjà semé dans beforeAll, pour ne pas confondre un rejet RLS
+        // avec un banal conflit de contrainte unique.
+        table: "convocations",
+        construireSql: () => ({
+          sql: `insert into convocations (assemblee_id, proprietaire_id, canal) values ($1, $2, 'email')`,
+          params: [assembleeId, unAutreProprietaireId],
+        }),
+      },
+      {
+        table: "presences",
+        construireSql: () => ({
+          sql: `insert into presences (assemblee_id, proprietaire_id) values ($1, $2)`,
+          params: [assembleeId, unAutreProprietaireId],
+        }),
+      },
+      {
+        table: "votes",
+        construireSql: () => ({
+          sql: `insert into votes (resolution_id, proprietaire_id, sens, voix) values ($1, $2, 'pour', 1)`,
+          params: [resolutionId, unAutreProprietaireId],
+        }),
+      },
+    ];
+
+    it.each(casInsertion)(
+      "un gestionnaire d'un autre cabinet ne peut pas insérer dans $table en visant Mamelles Tower",
+      async ({ construireSql }) => {
+        const { sql, params } = construireSql();
+        await expect(
+          commeUtilisateur(client, userGestionnaireAutreCabinet, () => client.query(sql, params)),
+        ).rejects.toThrow();
+      },
+    );
+
+    it.each(casInsertion)(
+      "le gestionnaire de Mamelles Tower, lui, peut insérer dans $table",
+      async ({ construireSql }) => {
+        const { sql, params } = construireSql();
+        const resultat = await commeUtilisateur(client, userGestionnaireMamelles, () =>
+          client.query(sql, params),
+        );
+        expect(resultat.rowCount).toBe(1);
+      },
+    );
+  });
+});

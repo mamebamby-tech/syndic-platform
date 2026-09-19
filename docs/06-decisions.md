@@ -17,6 +17,8 @@
 | 11 | `periodes` et `budget_lignes` isolées par immeuble en RLS | Leur politique d'origine (`using (true)`) ne filtrait sur aucun périmètre — une fuite de données entre cabinets. Corrigé en branchant l'écran Budget, avant qu'un utilisateur réel ne l'atteigne. |
 | 12 | `app.generer_appels` exposée via une enveloppe `public.generer_appels` qui vérifie le périmètre | La fonction interne est `security definer` (elle doit pouvoir écrire pour tous les lots) : sans contrôle explicite, un utilisateur authentifié aurait pu générer les appels d'un immeuble qui n'est pas le sien. Le contrôle vit dans l'enveloppe, pas dans la fonction interne, pour que les tests et tâches serveur gardent un accès direct via une connexion Postgres. |
 | 13 | Une période « courante » implicite, pas de sélecteur | Un seul exercice existe pour Mamelles Tower : Budget et Appels de fonds opèrent sur la période la plus récente. |
+| 14 | `with check` toujours aussi strict que `using` — audit complet | `motifs_delai_renforce` et `types_majorite` avaient `using (true)` ; sept autres politiques avaient un `using` scopé mais un `with check (true)`, qui laissait un `insert` viser un autre cabinet sans qu'aucune lecture ne l'ait autorisé. Voir CLAUDE.md règle n°2 et `20260919040000_rls_with_check_audit.sql`. |
+| 15 | Aucune requête directe sur `membres` avant cette session | L'audit a trouvé une récursion RLS infinie sur `membres` (une politique s'auto-référençait sans passer par une fonction `security definer`, contrairement à tout le reste du schéma) : `20260919050000_membres_rls_recursion.sql`. Bug présent depuis la migration d'origine, jamais atteint tant qu'aucun écran n'interrogeait `membres` directement. |
 
 ## Questions ouvertes — ne pas y répondre à la place de l'utilisateur
 

@@ -1,31 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Client } from "pg";
 import { connecter } from "./pg";
+import { commeUtilisateur } from "./simuler-utilisateur";
 
 // Vérifie que periodes / budget_lignes et public.generer_appels() isolent
 // bien les cabinets entre eux (CLAUDE.md règle n°2), en simulant un
 // utilisateur authentifié comme le ferait PostgREST : `set local role
 // authenticated` + `set local request.jwt.claims`. La politique d'origine
 // de ces deux tables ('using (true)') ne filtrait sur aucun périmètre —
-// voir supabase/migrations/20260919010000_periodes_budget_rls.sql.
-
-async function commeUtilisateur<T>(
-  client: Client,
-  userId: string | null,
-  requete: () => Promise<T>,
-): Promise<T> {
-  await client.query("begin");
-  try {
-    await client.query("set local role authenticated");
-    await client.query("select set_config('request.jwt.claims', $1, true)", [
-      userId ? JSON.stringify({ sub: userId }) : "{}",
-    ]);
-    return await requete();
-  } finally {
-    await client.query("rollback");
-    await client.query("reset role");
-  }
-}
+// voir supabase/migrations/20260919010000_periodes_budget_rls.sql. Pour
+// l'audit complet, toutes tables confondues, voir tests/rls-audit.test.ts.
 
 describe("sécurité par ligne — periodes, budget_lignes, generer_appels", () => {
   let client: Client;

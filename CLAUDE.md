@@ -55,6 +55,15 @@ serveur explicitement isolées.
 Avant de livrer une nouvelle table : écris sa politique RLS dans la même
 migration. Une table sans politique est une fuite de données entre cabinets.
 
+Toute politique a un `with check` aussi strict que son `using`. Le `using`
+ne protège que la lecture et les lignes déjà existantes qu'une écriture
+cible ; un `insert` n'a pas de ligne existante à filtrer, donc rien à part
+le `with check` ne l'empêche de viser un autre cabinet. `with check (true)`
+sur une politique par ailleurs bien scopée est la même fuite que
+`using (true)`, seulement en écriture — voir
+`supabase/migrations/20260919040000_rls_with_check_audit.sql` pour l'audit
+qui l'a trouvée dans sept politiques du schéma d'origine.
+
 ### 3. L'argent ne se devine pas
 
 - Les montants sont en **XOF** (franc CFA), sans décimale à l'affichage, stockés
