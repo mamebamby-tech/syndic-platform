@@ -141,6 +141,22 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
     }
   };
 
+  // Agit sous l'IDENTITÉ d'un acteur (auth.uid()) sans changer de rôle. Depuis la
+  // double validation (20260919140000), aucun utilisateur n'a plus le droit
+  // d'écrire les coordonnées en vigueur : les déclencheurs de trace et de date,
+  // eux, restent à tester — ils tracent aussi bien la confirmation d'une version
+  // que la modification faite par un script, sous l'identité de qui agit.
+  const agirComme = async <T,>(utilisateurId: string | null, corps: () => Promise<T>): Promise<T> => {
+    await client.query("select set_config('request.jwt.claims', $1, true)", [
+      JSON.stringify(utilisateurId ? { sub: utilisateurId } : {}),
+    ]);
+    try {
+      return await corps();
+    } finally {
+      await client.query("select set_config('request.jwt.claims', '{}', true)");
+    }
+  };
+
   const immeuble = async () =>
     (
       await client.query(
@@ -239,9 +255,37 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
       });
     });
 
-    it("un gestionnaire peut modifier, mais ni créer ni supprimer d'immeuble (proprietaire_org seul)", async () => {
+    it("un gestionnaire ne peut plus modifier directement les coordonnées de paiement : la seule voie est proposer puis confirmer", async () => {
+      await dansTransaction(async () => {
+        await enSession(gestionnaire, async () => {
+          for (const affectation of [
+            `compte_titulaire = 'X'`,
+            `compte_banque = 'X'`,
+            `compte_numero = 'X'`,
+            `compte_bic = 'ABCDSNDA'`,
+            `moyens_paiement_acceptes = '{wave}'`,
+            `numeros_marchands = '{}'::jsonb`,
+            `compte_modifie_le = now()`,
+          ]) {
+            const r = await essayer(client, `update immeubles set ${affectation} where id = $1`, [immeubleId]);
+            expect(r.erreur, affectation).toMatch(/permission denied/);
+          }
+        });
+      });
+    });
+
+    it("un proprietaire_org non plus : le droit d'écriture des coordonnées est retiré à tous les utilisateurs", async () => {
+      await dansTransaction(async () => {
+        await enSession(proprietaireOrg, async () => {
+          const r = await essayer(client, `update immeubles set compte_numero = 'X' where id = $1`, [immeubleId]);
+          expect(r.erreur).toMatch(/permission denied/);
+        });
+      });
+    });
+
+    it("un gestionnaire peut modifier le reste de l'immeuble, mais ni créer ni supprimer d'immeuble (proprietaire_org seul)", async () => {
       await enSession(gestionnaire, async () => {
-        const modif = await essayer(client, `update immeubles set compte_banque = 'Banque' where id = $1`, [
+        const modif = await essayer(client, `update immeubles set ville = 'Dakar' where id = $1`, [
           immeubleId,
         ]);
         expect(modif.lignes).toBe(1);
@@ -256,9 +300,9 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
       });
     });
 
-    it("un proprietaire_org peut modifier, créer et supprimer", async () => {
+    it("un proprietaire_org peut modifier le reste de l'immeuble, créer et supprimer", async () => {
       await enSession(proprietaireOrg, async () => {
-        const modif = await essayer(client, `update immeubles set compte_banque = 'Banque' where id = $1`, [
+        const modif = await essayer(client, `update immeubles set ville = 'Dakar' where id = $1`, [
           immeubleId,
         ]);
         expect(modif.lignes).toBe(1);
@@ -333,7 +377,7 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
     for (const [champ, affectation, nouvelle] of MODIFICATIONS) {
       it(`${champ} : une ligne de journal, avec avant, après, auteur et date`, async () => {
         await dansTransaction(async () => {
-          await enSession(gestionnaire, async () => {
+          await agirComme(gestionnaire, async () => {
             const r = await essayer(client, `update immeubles set ${affectation} where id = $1`, [immeubleId]);
             expect(r.erreur).toBeNull();
             expect(r.lignes).toBe(1);
@@ -364,7 +408,7 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
 
     it("les moyens acceptés et les numéros marchands sont tracés comme les coordonnées bancaires", async () => {
       await dansTransaction(async () => {
-        await enSession(gestionnaire, async () => {
+        await agirComme(gestionnaire, async () => {
           await client.query(
             `update immeubles set moyens_paiement_acceptes = '{wave,virement}',
                numeros_marchands = '{"wave": "770000000"}' where id = $1`,
@@ -388,7 +432,7 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
           [immeubleId],
         );
         const avantN = (await journal()).length;
-        await enSession(gestionnaire, async () => {
+        await agirComme(gestionnaire, async () => {
           await client.query(`update immeubles set numeros_marchands = '{"orange_money": "779999999"}' where id = $1`, [
             immeubleId,
           ]);
@@ -403,7 +447,7 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
 
     it("plusieurs champs dans une seule requête : une seule ligne, l'état complet avant/après", async () => {
       await dansTransaction(async () => {
-        await enSession(proprietaireOrg, async () => {
+        await agirComme(proprietaireOrg, async () => {
           await client.query(
             `update immeubles set compte_titulaire = 'T', compte_banque = 'B', compte_numero = 'N',
                compte_bic = 'ABCDSNDA' where id = $1`,
@@ -427,7 +471,7 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
 
     it("des modifications successives : une ligne chacune, chaînées (l'après de l'une est l'avant de la suivante)", async () => {
       await dansTransaction(async () => {
-        await enSession(gestionnaire, async () => {
+        await agirComme(gestionnaire, async () => {
           await client.query(`update immeubles set compte_numero = 'PREMIER' where id = $1`, [immeubleId]);
           await client.query(`update immeubles set compte_numero = 'SECOND' where id = $1`, [immeubleId]);
           await client.query(`update immeubles set compte_numero = 'TROISIEME' where id = $1`, [immeubleId]);
@@ -443,7 +487,7 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
 
     it("l'auteur est celui de la session, pas celui d'un autre membre du cabinet", async () => {
       await dansTransaction(async () => {
-        await enSession(proprietaireOrg, async () => {
+        await agirComme(proprietaireOrg, async () => {
           await client.query(`update immeubles set compte_banque = 'B' where id = $1`, [immeubleId]);
         });
         await client.query("reset role");
@@ -468,7 +512,7 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
         await dansTransaction(async () => {
           await client.query(`update immeubles set compte_titulaire = 'T', compte_numero = 'N' where id = $1`, [immeubleId]);
           const avantN = (await journal()).length;
-          await enSession(gestionnaire, async () => {
+          await agirComme(gestionnaire, async () => {
             await client.query(`update immeubles set compte_titulaire = 'T', compte_numero = 'N' where id = $1`, [immeubleId]);
           });
           await client.query("reset role");
@@ -488,7 +532,7 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
 
       it("modifier un autre champ de l'immeuble (nom, ville) ne trace rien", async () => {
         await dansTransaction(async () => {
-          await enSession(gestionnaire, async () => {
+          await agirComme(gestionnaire, async () => {
             await client.query(`update immeubles set nom = 'Autre nom', ville = 'Dakar' where id = $1`, [immeubleId]);
           });
           await client.query("reset role");
@@ -501,7 +545,7 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
     describe("le format de la référence : tracé aussi, sous une autre action", () => {
       it("le changement de format est tracé, et n'est pas une modification des coordonnées", async () => {
         await dansTransaction(async () => {
-          await enSession(gestionnaire, async () => {
+          await agirComme(gestionnaire, async () => {
             await client.query(`update immeubles set format_reference_appel = 'TOUR-{annee}-{seq}' where id = $1`, [
               immeubleId,
             ]);
@@ -590,7 +634,7 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
 
       it("une modification qui échoue (contrainte) ne laisse aucune trace", async () => {
         await dansTransaction(async () => {
-          await enSession(gestionnaire, async () => {
+          await agirComme(gestionnaire, async () => {
             const r = await essayer(
               client,
               `update immeubles set compte_numero = 'N', compte_bic = 'pas-un-bic' where id = $1`,
@@ -606,7 +650,7 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
 
       it("supprimer le compte de l'auteur garde la trace, avec son libellé, sans le lien", async () => {
         await dansTransaction(async () => {
-          await enSession(gestionnaire, async () => {
+          await agirComme(gestionnaire, async () => {
             await client.query(`update immeubles set compte_numero = 'N' where id = $1`, [immeubleId]);
           });
           await client.query("reset role");
@@ -626,7 +670,7 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
 
     it("posée à l'instant de la modification d'une coordonnée", async () => {
       await dansTransaction(async () => {
-        await enSession(gestionnaire, async () => {
+        await agirComme(gestionnaire, async () => {
           await client.query(`update immeubles set compte_numero = 'N' where id = $1`, [immeubleId]);
         });
         await client.query("reset role");
@@ -660,14 +704,14 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
 
     it("ne se falsifie pas : une date antidatée est écrasée", async () => {
       await dansTransaction(async () => {
-        await enSession(gestionnaire, async () => {
+        await agirComme(gestionnaire, async () => {
           // Sans changement de coordonnée : la date reste nulle.
           await client.query(`update immeubles set compte_modifie_le = '2000-01-01' where id = $1`, [immeubleId]);
         });
         await client.query("reset role");
         expect((await immeuble()).compte_modifie_le).toBeNull();
 
-        await enSession(gestionnaire, async () => {
+        await agirComme(gestionnaire, async () => {
           // Avec un changement de coordonnée : l'instant réel, pas la date fournie.
           await client.query(
             `update immeubles set compte_numero = 'N', compte_modifie_le = '2000-01-01' where id = $1`,

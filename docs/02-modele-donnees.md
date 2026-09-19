@@ -90,6 +90,20 @@ base :
 Le format de la référence (`code_reference`, `format_reference_appel`) est tracé
 aussi, sous une autre action (`format_reference_modifie`), sans alerte.
 
+**Double validation.** Depuis la migration 20260919140000, les utilisateurs
+n'ont plus le **droit d'écrire** ces colonnes (droit de colonne) : les colonnes
+`immeubles.compte_*`, `moyens_paiement_acceptes` et `numeros_marchands` sont la
+version **en vigueur**, que la base ne change que par `confirmer`. Modifier crée
+une ligne de `coordonnees_paiement_versions` (`en_attente`) ; un **autre** membre
+habilité (gestionnaire ou `proprietaire_org`) que son auteur la confirme
+(`en_vigueur`, l'ancienne devient `remplacee`) ou la refuse (`refusee`). Une seule
+version en attente et une seule en vigueur par immeuble. « L'auteur ne confirme
+pas » est une règle de la fonction **et** une contrainte de la table (elle tient
+même par SQL direct). Jusqu'à confirmation, l'émission des appels, l'instantané et
+le document utilisent la version en vigueur, c'est-à-dire l'ancienne. Un cabinet
+qui ne compte qu'un membre habilité ne peut confirmer aucune modification : la
+règle n'est pas contournée (question ouverte n° 12).
+
 ### Un appel émis est figé
 
 `appels.instantane` : copie de tout ce que le document affiche, prise par la base

@@ -1,6 +1,7 @@
 import "server-only";
 import { creerClientServeur } from "@/lib/supabase/server";
 import type { MoyenPaiement, Periodicite, RoleMembre } from "@/lib/types/database";
+import { compterHabilites } from "@/lib/parametres/double-validation";
 import {
   ACTIONS_PARAMETRES,
   decrireModification,
@@ -22,6 +23,62 @@ export interface ParametresImmeuble {
   compteModifieLe: string | null;
   // Périodicité du règlement en vigueur : sert à montrer un exemple de référence.
   periodicite: Periodicite | null;
+}
+
+export interface VersionEnAttente {
+  id: string;
+  titulaire: string;
+  banque: string;
+  numero: string;
+  bic: string;
+  moyens: MoyenPaiement[];
+  marchands: Record<string, string>;
+  proposePar: string | null;
+  proposeParLibelle: string | null;
+  proposeLe: string;
+}
+
+// La modification qui attend confirmation (au plus une par immeuble). Lisible par
+// tout le personnel du cabinet ; l'écran ne la montre EN CLAIR qu'aux habilités.
+export async function chargerVersionEnAttente(immeubleId: string): Promise<VersionEnAttente | null> {
+  const supabase = await creerClientServeur();
+  const { data, error } = await supabase
+    .from("coordonnees_paiement_versions")
+    .select(
+      "id, compte_titulaire, compte_banque, compte_numero, compte_bic, moyens_paiement_acceptes, numeros_marchands, propose_par, propose_par_libelle, propose_le",
+    )
+    .eq("immeuble_id", immeubleId)
+    .eq("statut", "en_attente")
+    .maybeSingle();
+  if (error) throw new Error(`Lecture de la modification en attente impossible : ${error.message}`);
+  if (!data) return null;
+  return {
+    id: data.id,
+    titulaire: data.compte_titulaire ?? "",
+    banque: data.compte_banque ?? "",
+    numero: data.compte_numero ?? "",
+    bic: data.compte_bic ?? "",
+    moyens: data.moyens_paiement_acceptes,
+    marchands: data.numeros_marchands,
+    proposePar: data.propose_par,
+    proposeParLibelle: data.propose_par_libelle,
+    proposeLe: data.propose_le,
+  };
+}
+
+// Nombre de membres habilités (gestionnaire, proprietaire_org) du cabinet : la
+// confirmation exige un AUTRE membre que l'auteur, donc au moins deux.
+export async function compterMembresHabilites(organisationId: string): Promise<number> {
+  const supabase = await creerClientServeur();
+  const { data, error } = await supabase.from("membres").select("role").eq("organisation_id", organisationId);
+  if (error) throw new Error(`Lecture des membres impossible : ${error.message}`);
+  return compterHabilites((data ?? []).map((membre) => membre.role));
+}
+
+export async function utilisateurCourantId(): Promise<string | null> {
+  const supabase = await creerClientServeur();
+  const { data: claims } = await supabase.auth.getClaims();
+  return claims?.claims.sub ?? null;
 }
 
 export async function chargerParametres(immeubleId: string): Promise<ParametresImmeuble | null> {

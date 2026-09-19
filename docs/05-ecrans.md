@@ -9,9 +9,10 @@ comportement.
 ### Tableau de bord
 **Construit à ce jour : le panneau « à traiter » pour les coordonnées de
 paiement** — état (renseignées ou non, l'émission des appels est bloquée
-tant qu'elles ne le sont pas), dernière modification, et **alerte permanente sur
-la dernière modification** : quand, par qui, ce qui a changé (avant → après,
-numéros masqués), avec un rappel de vérifier qu'elle est légitime. Sous le
+tant qu'elles ne le sont pas), dernière modification, et **alerte sur la
+modification en attente de confirmation** : quand, par qui, ce qui change (avant →
+après, numéros masqués), avec le lien pour la vérifier. L'alerte **disparaît à la
+confirmation** (ou au refus). Sous le
 panneau, l'historique récent des modifications. C'est la page d'accueil de
 l'immeuble ; tout le personnel la voit, lecteurs compris. Le reste (chiffres du
 trimestre, comptes copropriétaires, répartition) n'est pas construit.
@@ -33,8 +34,12 @@ sont acceptés), **moyens de paiement acceptés** (Wave, Orange Money, virement,
 virement international, espèces ; numéro marchand facultatif pour les deux moyens
 mobiles), **référence des appels** (code de l'immeuble, format à jetons, exemple
 en direct). Un compte partiellement rempli est signalé : l'émission reste
-bloquée. Toute modification des coordonnées est tracée et signalée sur le
-tableau de bord.
+bloquée. Les coordonnées de paiement **ne se modifient pas directement** : en
+enregistrer de nouvelles crée une modification **en attente**, affichée en tête de
+la page (avant / après, en clair, pour comparer à la source) ; un **autre** membre
+habilité que son auteur la confirme ou la refuse, l'auteur peut la retirer mais pas
+la confirmer. Un cabinet à un seul membre habilité voit le blocage expliqué, sans
+contournement. Toute modification est tracée et signalée sur le tableau de bord.
 
 ### Budget et clés de répartition
 **Génération des appels.** Trois boutons : « Enregistrer le budget », « Générer les

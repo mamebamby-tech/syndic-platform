@@ -3,10 +3,15 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import {
   chargerParametres,
+  chargerVersionEnAttente,
+  compterMembresHabilites,
   listerModificationsParametres,
   peutParametrer,
   roleSurOrganisation,
+  utilisateurCourantId,
 } from "@/lib/data/parametres-immeuble";
+import { instantaneCoordonnees, situationDeLaVersion } from "@/lib/parametres/double-validation";
+import { decrireModification } from "@/lib/parametres/journal";
 import { getValeurs } from "@/lib/i18n/valeurs-serveur";
 import type { ModificationDecrite } from "@/lib/parametres/journal";
 import { ChangementParametre } from "@/components/tableau-de-bord/changement-parametre";
@@ -30,16 +35,48 @@ export default async function PageTableauDeBord({
   const compteRenseigne = [parametres.titulaire, parametres.banque, parametres.numero].every(
     (champ) => champ.trim().length > 0,
   );
-  // La dernière modification des coordonnées de paiement est toujours signalée :
-  // elle change l'endroit où les copropriétaires paient.
-  const derniere = modifications.find((m) => m.action === "coordonnees_paiement_modifiees");
+
+  // L'alerte : une modification des coordonnées de paiement EN ATTENTE de
+  // confirmation. Elle disparaît à la confirmation (ou au refus) : ce qui reste
+  // est dans l'historique. Décrite avec le vocabulaire du journal, numéros masqués :
+  // ce tableau est lu par tout le personnel, lecteurs compris.
+  const [enAttente, habilites, utilisateurId] = await Promise.all([
+    chargerVersionEnAttente(immeubleId),
+    compterMembresHabilites(parametres.organisationId),
+    utilisateurCourantId(),
+  ]);
+  const situation = enAttente ? situationDeLaVersion(enAttente.proposePar, utilisateurId, habilites) : null;
+  const alerte: ModificationDecrite | null = enAttente
+    ? decrireModification({
+        id: enAttente.id,
+        cree_le: enAttente.proposeLe,
+        acteur_libelle: enAttente.proposeParLibelle,
+        action: "coordonnees_paiement_proposees",
+        avant: instantaneCoordonnees({
+          titulaire: parametres.titulaire,
+          banque: parametres.banque,
+          numero: parametres.numero,
+          bic: parametres.bic,
+          moyens: parametres.moyens,
+          marchands: parametres.marchands,
+        }),
+        apres: instantaneCoordonnees({
+          titulaire: enAttente.titulaire,
+          banque: enAttente.banque,
+          numero: enAttente.numero,
+          bic: enAttente.bic,
+          moyens: enAttente.moyens,
+          marchands: enAttente.marchands,
+        }),
+      })
+    : null;
 
   const titre = (m: ModificationDecrite) =>
     m.action === "format_reference_modifie"
       ? t("modification.format_reference_modifie")
-      : m.premiereSaisie
+      : m.premiereSaisie && m.action === "coordonnees_paiement_modifiees"
         ? t("modification.premiereSaisie")
-        : t("modification.coordonnees_paiement_modifiees");
+        : t(`modification.${m.action}`);
   const quand = (m: ModificationDecrite) =>
     m.acteur
       ? t("modification.leParAuteur", { date: valeurs.dateHeure(m.date), acteur: m.acteur })
@@ -80,19 +117,31 @@ export default async function PageTableauDeBord({
             )}
           </div>
 
-          {derniere && (
+          {enAttente && alerte && situation && (
             <div
               role="alert"
               className="rounded-card border border-alerte-doux bg-alerte-doux p-4 text-alerte"
             >
-              <p className="text-sm font-medium">{titre(derniere)}</p>
-              <p className="mt-0.5 text-sm">{quand(derniere)}</p>
+              <p className="text-sm font-medium">{t("paiement.enAttenteTitre")}</p>
+              <p className="mt-0.5 text-sm">{quand(alerte)}</p>
               <ul className="mt-2 space-y-1 text-encre">
-                {derniere.changements.map((changement) => (
+                {alerte.changements.map((changement) => (
                   <ChangementParametre key={changement.champ} changement={changement} />
                 ))}
               </ul>
-              <p className="mt-2 text-xs">{t("paiement.verifier")}</p>
+              <p className="mt-2 text-xs">{t("paiement.enAttenteConsigne")}</p>
+              {situation.estAuteur && <p className="mt-1 text-xs">{t("paiement.enAttenteVousEtesAuteur")}</p>}
+              {situation.aucunAutreHabilite && (
+                <p className="mt-1 text-xs font-medium">{t("paiement.aucunAutreHabilite")}</p>
+              )}
+              {peutParametrer(role) && (
+                <Link
+                  href={`/immeubles/${immeubleId}/parametres`}
+                  className="mt-2 inline-block text-sm text-action underline underline-offset-2"
+                >
+                  {situation.peutConfirmer ? t("paiement.verifierEtConfirmer") : t("paiement.ouvrirParametres")}
+                </Link>
+              )}
             </div>
           )}
         </div>

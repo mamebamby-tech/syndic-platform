@@ -5,7 +5,19 @@
 // les masque : le tableau de bord est lu par tout le personnel, lecteurs compris.
 
 export const ACTIONS_PAIEMENT = ["coordonnees_paiement_modifiees"] as const;
-export const ACTIONS_PARAMETRES = ["coordonnees_paiement_modifiees", "format_reference_modifie"] as const;
+// modifiees : entrée en vigueur (après confirmation) ; proposees / refusees :
+// double validation (20260919140000) ; format : code et format de la référence.
+export const ACTIONS_PARAMETRES = [
+  "coordonnees_paiement_modifiees",
+  "coordonnees_paiement_proposees",
+  "coordonnees_paiement_refusees",
+  "format_reference_modifie",
+] as const;
+const ACTIONS_COORDONNEES = [
+  "coordonnees_paiement_modifiees",
+  "coordonnees_paiement_proposees",
+  "coordonnees_paiement_refusees",
+];
 export type ActionJournal = (typeof ACTIONS_PARAMETRES)[number];
 
 export interface LigneJournal {
@@ -84,7 +96,7 @@ export function decrireModification(ligne: LigneJournal): ModificationDecrite | 
     }
   };
 
-  if (ligne.action === "coordonnees_paiement_modifiees") {
+  if (ACTIONS_COORDONNEES.includes(ligne.action)) {
     texteChange("compte_titulaire");
     texteChange("compte_banque");
     if (!memes(texte(avant.compte_numero), texte(apres.compte_numero))) {
@@ -129,7 +141,7 @@ export function decrireModification(ligne: LigneJournal): ModificationDecrite | 
     date: ligne.cree_le,
     acteur: ligne.acteur_libelle,
     action: ligne.action as ActionJournal,
-    premiereSaisie: ligne.action === "coordonnees_paiement_modifiees" && avantVide,
+    premiereSaisie: ACTIONS_COORDONNEES.includes(ligne.action) && avantVide,
     changements,
   };
 }

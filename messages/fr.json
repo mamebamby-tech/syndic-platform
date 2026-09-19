@@ -46,12 +46,19 @@
       "renseignees": "Coordonnées bancaires renseignées.",
       "derniereModification": "Dernière modification le {date}.",
       "ouvrirParametres": "Ouvrir les paramètres",
+      "verifierEtConfirmer": "Vérifier et confirmer",
+      "enAttenteTitre": "Modification des coordonnées de paiement en attente de confirmation",
+      "enAttenteConsigne": "Elle n'est pas en vigueur : les appels utilisent les coordonnées actuelles tant qu'un autre membre habilité que son auteur ne l'a pas confirmée.",
+      "enAttenteVousEtesAuteur": "Vous en êtes l'auteur : un autre membre habilité doit la confirmer.",
+      "aucunAutreHabilite": "Aucun autre membre habilité dans ce cabinet : personne ne peut la confirmer. Ajoutez un second gestionnaire ou propriétaire.",
       "aucuneModification": "Aucune modification enregistrée.",
       "historique": "Modifications récentes",
       "verifier": "Vérifiez que cette modification est bien la vôtre ou celle d'un collègue : elle change l'endroit où les copropriétaires paient."
     },
     "modification": {
-      "coordonnees_paiement_modifiees": "Coordonnées de paiement modifiées",
+      "coordonnees_paiement_modifiees": "Coordonnées de paiement entrées en vigueur",
+      "coordonnees_paiement_proposees": "Modification des coordonnées de paiement proposée",
+      "coordonnees_paiement_refusees": "Modification des coordonnées de paiement écartée",
       "premiereSaisie": "Première saisie des coordonnées de paiement",
       "format_reference_modifie": "Format de la référence des appels modifié",
       "leParAuteur": "Le {date}, par {acteur}",
@@ -73,7 +80,7 @@
   },
   "Parametres": {
     "titre": "Paramètres de l'immeuble",
-    "introduction": "Ces réglages figurent sur les appels de fonds. Toute modification des coordonnées de paiement est tracée (auteur, date) et signalée sur le tableau de bord ; les copropriétaires voient la date de la dernière modification sur l'appel.",
+    "introduction": "Ces réglages figurent sur les appels de fonds. Toute modification des coordonnées de paiement doit être confirmée par un autre membre habilité que son auteur ; elle est tracée (auteur, date) et signalée sur le tableau de bord, et les copropriétaires voient la date de la dernière modification sur l'appel.",
     "accesReserve": {
       "titre": "Accès réservé",
       "message": "Les paramètres de l'immeuble sont réservés aux gestionnaires et aux propriétaires du cabinet."
@@ -107,6 +114,33 @@
     "enregistrer": "Enregistrer",
     "enregistrement": "Enregistrement…",
     "enregistre": "Paramètres enregistrés.",
+    "enregistreEnAttente": "Modification proposée : elle attend la confirmation d'un autre membre habilité. Les coordonnées en vigueur ne changent pas d'ici là.",
+    "remplaceraLaDemande": "Une modification est déjà en attente : en enregistrer une nouvelle la remplace.",
+    "enAttente": {
+      "titre": "Modification des coordonnées de paiement en attente de confirmation",
+      "proposeePar": "Proposée le {date}, par {auteur}.",
+      "proposeeAuteurInconnu": "Proposée le {date} (auteur inconnu).",
+      "champ": "Champ",
+      "enVigueur": "En vigueur",
+      "propose": "Proposé",
+      "consigne": "Tant qu'elle n'est pas confirmée par un autre membre habilité, les appels utilisent les coordonnées en vigueur.",
+      "verifier": "Comparez chaque valeur à sa source (relevé d'identité bancaire, contrat) avant de confirmer.",
+      "vousEtesAuteur": "Vous avez proposé cette modification : vous ne pouvez pas la confirmer. Un autre membre habilité du cabinet doit le faire.",
+      "aucunAutreHabilite": "Ce cabinet ne compte qu'un membre habilité : personne d'autre ne peut confirmer cette modification, et la règle ne se contourne pas. Ajoutez un second gestionnaire ou propriétaire pour la valider.",
+      "confirmer": "Confirmer la modification",
+      "refuser": "Refuser",
+      "retirer": "Retirer ma demande",
+      "vide": "(vide)",
+      "aucun": "aucun"
+    },
+    "decision": {
+      "confirmee": "Modification confirmée : les nouvelles coordonnées sont en vigueur.",
+      "refusee": "Modification écartée : les coordonnées en vigueur ne changent pas.",
+      "auteur": "L'auteur d'une modification ne peut pas la confirmer.",
+      "plus_en_attente": "Cette modification n'est plus en attente : elle a été remplacée ou déjà traitée.",
+      "non_autorise": "Vous n'avez pas le droit d'effectuer cette action.",
+      "erreur": "Action impossible. Réessayez, ou contactez l'administrateur."
+    },
     "erreurs": {
       "bic_invalide": "Code SWIFT / BIC invalide (8 ou 11 caractères alphanumériques).",
       "swift_requis": "Le code SWIFT est requis pour accepter les virements internationaux.",

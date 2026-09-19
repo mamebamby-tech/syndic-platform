@@ -41,12 +41,15 @@ export function FormulaireParametres({
   parametres,
   exemple,
   dateDerniereModification,
+  enAttenteExiste,
 }: {
   parametres: ParametresImmeuble;
   // null quand aucun règlement en vigueur ne donne la périodicité.
   exemple: ExempleReference | null;
   // Déjà mise en mots par le serveur (« 1er octobre 2026 ») ; null si jamais renseignées.
   dateDerniereModification: string | null;
+  // Une modification des coordonnées attend déjà confirmation : en proposer une autre la remplace.
+  enAttenteExiste: boolean;
 }) {
   const t = useTranslations("Parametres");
   const tMoyen = useTranslations("MoyenPaiement");
@@ -261,6 +264,14 @@ export function FormulaireParametres({
       {etat.erreurs.general && (
         <p role="alert" className="rounded-control bg-impaye-doux px-3 py-2 text-sm text-impaye">
           <Erreur code={etat.erreurs.general} />
+        </p>
+      )}
+      {enAttenteExiste && etat.statut !== "en_attente" && (
+        <p className="text-sm text-alerte">{t("remplaceraLaDemande")}</p>
+      )}
+      {etat.statut === "en_attente" && (
+        <p role="status" className="rounded-control bg-action-doux px-3 py-2 text-sm text-action-encre">
+          {t("enregistreEnAttente")}
         </p>
       )}
       {etat.statut === "ok" && (

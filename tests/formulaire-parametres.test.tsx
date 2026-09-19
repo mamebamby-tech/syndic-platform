@@ -27,7 +27,12 @@ const parametres: ParametresImmeuble = {
   periodicite: "trimestriel",
 };
 
-async function rendre(surcharge: Partial<ParametresImmeuble> = {}, exemple: { annee: number; periode: string } | null = { annee: 2026, periode: "T4" }, date: string | null = null) {
+async function rendre(
+  surcharge: Partial<ParametresImmeuble> = {},
+  exemple: { annee: number; periode: string } | null = { annee: 2026, periode: "T4" },
+  date: string | null = null,
+  enAttenteExiste = false,
+) {
   const messages = await chargerMessages("fr");
   const html = renderToStaticMarkup(
     <NextIntlClientProvider locale="fr" messages={messages} timeZone="UTC">
@@ -35,6 +40,7 @@ async function rendre(surcharge: Partial<ParametresImmeuble> = {}, exemple: { an
         parametres={{ ...parametres, ...surcharge }}
         exemple={exemple}
         dateDerniereModification={date}
+        enAttenteExiste={enAttenteExiste}
       />
     </NextIntlClientProvider>,
   );
@@ -122,10 +128,17 @@ describe("formulaire des paramètres de l'immeuble", () => {
     expect((await rendre()).texte).toContain("Coordonnées de paiement jamais renseignées.");
   });
 
+  it("signale qu'une nouvelle demande remplace celle qui attend", async () => {
+    expect((await rendre({}, undefined, null, true)).texte).toContain("en enregistrer une nouvelle la remplace");
+    expect((await rendre()).texte).not.toContain("la remplace");
+  });
+
   it("rappelle que toute modification est tracée et signalée", async () => {
     // L'introduction est portée par la page ; le formulaire ne montre que ce qui l'engage.
     const messages = await chargerMessages("fr");
     expect(messages.Parametres.introduction).toMatch(/tracée/);
     expect(messages.Parametres.introduction).toMatch(/tableau de bord/);
+    // ...et qu'elle doit être confirmée par un autre membre habilité.
+    expect(messages.Parametres.introduction).toMatch(/confirmée par un autre membre habilité/);
   });
 });

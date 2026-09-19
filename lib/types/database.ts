@@ -382,6 +382,29 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["paiements"]["Row"]>;
         Relationships: [];
       };
+      // Lecture seule pour les utilisateurs : seules des fonctions y écrivent.
+      coordonnees_paiement_versions: {
+        Row: {
+          id: string;
+          immeuble_id: string;
+          statut: "en_attente" | "en_vigueur" | "remplacee" | "refusee";
+          compte_titulaire: string | null;
+          compte_banque: string | null;
+          compte_numero: string | null;
+          compte_bic: string | null;
+          moyens_paiement_acceptes: MoyenPaiement[];
+          numeros_marchands: Record<string, string>;
+          propose_par: string | null;
+          propose_par_libelle: string | null;
+          propose_le: string;
+          decide_par: string | null;
+          decide_par_libelle: string | null;
+          decide_le: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       // Lecture seule pour les utilisateurs : seuls des déclencheurs y écrivent.
       journal: {
         Row: {
@@ -409,6 +432,26 @@ export interface Database {
       };
       changer_langue: {
         Args: { p_langue: string };
+        Returns: undefined;
+      };
+      proposer_coordonnees_paiement: {
+        Args: {
+          p_immeuble: string;
+          p_titulaire: string | null;
+          p_banque: string | null;
+          p_numero: string | null;
+          p_bic: string | null;
+          p_moyens: MoyenPaiement[];
+          p_numeros: Record<string, string>;
+        };
+        Returns: string;
+      };
+      confirmer_coordonnees_paiement: {
+        Args: { p_version: string };
+        Returns: undefined;
+      };
+      refuser_coordonnees_paiement: {
+        Args: { p_version: string };
         Returns: undefined;
       };
       ma_langue: {

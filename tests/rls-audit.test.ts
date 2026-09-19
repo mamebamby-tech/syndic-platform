@@ -44,6 +44,7 @@ describe("audit RLS — toutes les tables du schéma public", () => {
   let unAutreProprietaireId: string;
   let unPosteChargeId: string;
   let exerciceAuditId: string;
+  let versionPaiementId: string;
 
   let userGestionnaireMamelles: string;
   let userGestionnaireAutreCabinet: string;
@@ -238,6 +239,15 @@ describe("audit RLS — toutes les tables du schéma public", () => {
     );
     journalId = journal.rows[0]!.id;
 
+    // Version « refusée » : n'entre pas dans l'index d'une seule version en attente
+    // par immeuble, que l'usage réel de la base de dev peut occuper.
+    const versionPaiement = await client.query<{ id: string }>(
+      `insert into coordonnees_paiement_versions (immeuble_id, statut, compte_titulaire, decide_le)
+       values ($1, 'refusee', 'Test audit RLS', now()) returning id`,
+      [mamellesImmeubleId],
+    );
+    versionPaiementId = versionPaiement.rows[0]!.id;
+
     const occupant = await client.query<{ id: string }>(
       `insert into occupants (lot_id, nom) values ($1, 'Occupant de test') returning id`,
       [unLotId],
@@ -258,6 +268,7 @@ describe("audit RLS — toutes les tables du schéma public", () => {
     void incidentId;
     void notificationId;
     void journalId;
+    void versionPaiementId;
     void occupantId;
     void accesPersonneId;
   });
@@ -274,6 +285,7 @@ describe("audit RLS — toutes les tables du schéma public", () => {
     await client.query(`delete from incidents where id = $1`, [incidentId]);
     await client.query(`delete from notifications where id = $1`, [notificationId]);
     await client.query(`delete from journal where id = $1`, [journalId]);
+    await client.query(`delete from coordonnees_paiement_versions where id = $1`, [versionPaiementId]);
     await client.query(`delete from occupants where id = $1`, [occupantId]);
     await client.query(`delete from acces_personnes where id = $1`, [accesPersonneId]);
     await client.query(`delete from immeubles where id = $1`, [autreImmeubleId]);
