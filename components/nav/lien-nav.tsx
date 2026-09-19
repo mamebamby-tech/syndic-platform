@@ -3,9 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export function LienNav({ href, children }: { href: string; children: React.ReactNode }) {
+// `exact` : le tableau de bord (/immeubles/<id>) est le préfixe de toutes les
+// autres pages de l'immeuble ; sans lui il serait toujours « actif ».
+export function LienNav({
+  href,
+  children,
+  exact = false,
+}: {
+  href: string;
+  children: React.ReactNode;
+  exact?: boolean;
+}) {
   const pathname = usePathname();
-  const actif = pathname === href || pathname.startsWith(`${href}/`);
+  const actif = pathname === href || (!exact && pathname.startsWith(`${href}/`));
 
   return (
     <Link

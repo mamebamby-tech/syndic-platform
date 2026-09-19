@@ -74,6 +74,8 @@ export interface Database {
           pays: string;
           titre_foncier: string | null;
           devise: string;
+          numeros_marchands: Record<string, string>;
+          compte_modifie_le: string | null;
           code_reference: string | null;
           format_reference_appel: string;
           compte_titulaire: string | null;
@@ -374,6 +376,24 @@ export interface Database {
           moyen: MoyenPaiement;
         };
         Update: Partial<Database["public"]["Tables"]["paiements"]["Row"]>;
+        Relationships: [];
+      };
+      // Lecture seule pour les utilisateurs : seuls des déclencheurs y écrivent.
+      journal: {
+        Row: {
+          id: string;
+          organisation_id: string;
+          acteur_id: string | null;
+          acteur_libelle: string | null;
+          entite: string;
+          entite_id: string | null;
+          action: string;
+          avant: unknown;
+          apres: unknown;
+          cree_le: string;
+        };
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
     };

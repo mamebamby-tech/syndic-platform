@@ -39,6 +39,8 @@ const ESPACES_CLIENT = [
   "Appels",
   "StatutAppel",
   "AnomalieContact",
+  "Parametres",
+  "MoyenPaiement",
 ] as const satisfies readonly (keyof Messages)[];
 
 export function messagesPourLeNavigateur(messages: Messages) {

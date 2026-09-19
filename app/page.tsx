@@ -23,5 +23,5 @@ export default async function PageAccueil() {
   if (!premier) {
     redirect("/login");
   }
-  redirect(`/immeubles/${premier.id}/lots`);
+  redirect(`/immeubles/${premier.id}`);
 }

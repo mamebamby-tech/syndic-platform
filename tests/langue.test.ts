@@ -3,6 +3,7 @@ import type { Client } from "pg";
 import { connecter } from "./pg";
 import { commeUtilisateur } from "./simuler-utilisateur";
 import { LANGUES } from "@/lib/i18n/config";
+import { enProprietaire, essayer } from "./aides";
 
 // Changer sa langue — et ne rien pouvoir faire d'autre.
 //
@@ -15,36 +16,6 @@ import { LANGUES } from "@/lib/i18n/config";
 // Tout se passe sur un cabinet fictif, sans lien avec Mamelles Tower ni
 // donnée personnelle réelle. Les lignes semées sont supprimées en fin de
 // fichier ; chaque test s'exécute dans une transaction annulée.
-
-interface Resultat {
-  erreur: string | null;
-  lignes: number;
-}
-
-// Tente une requête sans faire échouer la transaction de test : une erreur
-// (with check, droit refusé) est attendue et se mesure, pas se subit.
-async function essayer(client: Client, sql: string, params: unknown[] = []): Promise<Resultat> {
-  await client.query("savepoint essai");
-  try {
-    const r = await client.query(sql, params);
-    await client.query("release savepoint essai");
-    return { erreur: null, lignes: r.rowCount ?? 0 };
-  } catch (e) {
-    await client.query("rollback to savepoint essai");
-    return { erreur: e instanceof Error ? e.message : String(e), lignes: 0 };
-  }
-}
-
-// Lit en tant que propriétaire de la base (hors RLS) au milieu d'une
-// transaction simulée, pour constater ce qui a réellement été écrit.
-async function enProprietaire<T>(client: Client, lecture: () => Promise<T>): Promise<T> {
-  await client.query("reset role");
-  try {
-    return await lecture();
-  } finally {
-    await client.query("set local role authenticated");
-  }
-}
 
 describe("changer sa langue — public.changer_langue / public.ma_langue", () => {
   let client: Client;

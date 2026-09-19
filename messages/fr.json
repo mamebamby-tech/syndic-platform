@@ -30,10 +30,93 @@
   },
   "Navigation": {
     "immeuble": "Immeuble",
+    "tableauDeBord": "Tableau de bord",
+    "parametres": "Paramètres",
     "registreLots": "Registre des lots",
     "budget": "Budget",
     "appels": "Appels de fonds",
     "deconnexion": "Se déconnecter"
+  },
+  "TableauDeBord": {
+    "titre": "Tableau de bord",
+    "aTraiter": "À traiter",
+    "paiement": {
+      "titre": "Coordonnées de paiement",
+      "nonRenseignees": "Coordonnées bancaires du syndicat à renseigner : l'émission des appels est bloquée.",
+      "renseignees": "Coordonnées bancaires renseignées.",
+      "derniereModification": "Dernière modification le {date}.",
+      "ouvrirParametres": "Ouvrir les paramètres",
+      "aucuneModification": "Aucune modification enregistrée.",
+      "historique": "Modifications récentes",
+      "verifier": "Vérifiez que cette modification est bien la vôtre ou celle d'un collègue : elle change l'endroit où les copropriétaires paient."
+    },
+    "modification": {
+      "coordonnees_paiement_modifiees": "Coordonnées de paiement modifiées",
+      "premiereSaisie": "Première saisie des coordonnées de paiement",
+      "format_reference_modifie": "Format de la référence des appels modifié",
+      "leParAuteur": "Le {date}, par {acteur}",
+      "leAuteurInconnu": "Le {date}, auteur inconnu (modification hors session)"
+    },
+    "champs": {
+      "compte_titulaire": "Titulaire du compte",
+      "compte_banque": "Banque",
+      "compte_numero": "Numéro de compte",
+      "compte_bic": "Code SWIFT / BIC",
+      "moyens_paiement_acceptes": "Moyens acceptés",
+      "numeros_marchands": "Numéros marchands",
+      "code_reference": "Code de l'immeuble",
+      "format_reference_appel": "Format de la référence"
+    },
+    "avantApres": "{avant} → {apres}",
+    "vide": "(vide)",
+    "aucun": "aucun"
+  },
+  "Parametres": {
+    "titre": "Paramètres de l'immeuble",
+    "introduction": "Ces réglages figurent sur les appels de fonds. Toute modification des coordonnées de paiement est tracée (auteur, date) et signalée sur le tableau de bord ; les copropriétaires voient la date de la dernière modification sur l'appel.",
+    "accesReserve": {
+      "titre": "Accès réservé",
+      "message": "Les paramètres de l'immeuble sont réservés aux gestionnaires et aux propriétaires du cabinet."
+    },
+    "derniereModification": "Coordonnées de paiement modifiées le {date}.",
+    "jamaisRenseignees": "Coordonnées de paiement jamais renseignées.",
+    "compte": {
+      "titre": "Coordonnées bancaires du syndicat",
+      "titulaire": "Titulaire du compte",
+      "banque": "Banque",
+      "numero": "Numéro de compte ou IBAN",
+      "swift": "Code SWIFT / BIC",
+      "swiftAide": "Requis pour accepter les virements internationaux. 8 ou 11 caractères.",
+      "incomplet": "Coordonnées incomplètes : l'émission des appels reste bloquée tant que le titulaire, la banque et le numéro ne sont pas tous renseignés."
+    },
+    "moyens": {
+      "titre": "Moyens de paiement acceptés",
+      "aide": "Cochez les moyens que le syndicat accepte. Ils figurent sur l'appel.",
+      "numeroMarchand": "Numéro marchand",
+      "numeroMarchandAide": "Facultatif."
+    },
+    "reference": {
+      "titre": "Référence des appels",
+      "code": "Code de l'immeuble",
+      "codeAide": "1 à 8 lettres majuscules ou chiffres.",
+      "format": "Format",
+      "formatAide": "Jetons : {jetons}. Le jeton seq est obligatoire ; ni espace ni caractère spécial (lettres, chiffres, tiret, tiret bas).",
+      "exemple": "Exemple : {exemple}",
+      "portee": "Un nouveau format ne s'applique qu'aux appels générés ensuite ; les appels déjà émis gardent leur référence."
+    },
+    "enregistrer": "Enregistrer",
+    "enregistrement": "Enregistrement…",
+    "enregistre": "Paramètres enregistrés.",
+    "erreurs": {
+      "bic_invalide": "Code SWIFT / BIC invalide (8 ou 11 caractères alphanumériques).",
+      "swift_requis": "Le code SWIFT est requis pour accepter les virements internationaux.",
+      "moyen_inconnu": "Moyen de paiement inconnu.",
+      "code_invalide": "Code invalide : 1 à 8 lettres majuscules ou chiffres.",
+      "code_deja_utilise": "Ce code est déjà utilisé par un autre immeuble du cabinet.",
+      "format_invalide": "Format invalide : il doit contenir le jeton seq, sans espace ni caractère spécial.",
+      "acces_refuse": "Vous n'avez pas le droit de modifier ces paramètres.",
+      "enregistrement_impossible": "Enregistrement impossible. Réessayez, ou contactez l'administrateur."
+    }
   },
   "Lots": {
     "titre": "Registre des lots",
@@ -199,6 +282,7 @@
         "numero": "Numéro de compte",
         "bic": "BIC",
         "reference": "Référence à rappeler",
+        "modifieLe": "Coordonnées modifiées le",
         "consigne": "Rappelez cette référence dans le libellé de votre règlement."
       },
       "ninea": "NINEA {valeur}",
@@ -210,7 +294,8 @@
       "virement": "Virement",
       "virement_international": "Virement international",
       "especes": "Espèces",
-      "cheque": "Chèque"
+      "cheque": "Chèque",
+      "avecNumero": "{moyen} (numéro marchand {numero})"
     }
   },
   "Notifications": {

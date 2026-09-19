@@ -12,8 +12,9 @@ dont la violation impose une réécriture.
 Le socle de données est écrit. L'application Next.js couvre : connexion par
 code à usage unique, coquille de navigation avec sélecteur d'immeuble, registre
 des lots, budget d'une période avec clés de répartition éditables, génération
-et consultation des appels de fonds (avec aperçu du document nominatif), et
-relevé consolidé par propriétaire. L'encaissement des paiements et l'envoi
+et consultation des appels de fonds (avec aperçu du document nominatif), relevé
+consolidé par propriétaire, paramètres de l'immeuble (coordonnées de paiement
+tracées, référence des appels) et un tableau de bord réduit à ses alertes. L'encaissement des paiements et l'envoi
 effectif (WhatsApp, courriel) restent à construire — voir
 `docs/06-decisions.md`, « Chantiers différés ».
 

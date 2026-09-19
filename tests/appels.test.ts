@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Client } from "pg";
 import { connecter } from "./pg";
 import { anomaliesContact, canauxDisponibles, etatEnvoi } from "../lib/data/anomalie-contact";
+import { codePeriode, rendreReference } from "../lib/parametres/reference";
 
 // Génération des appels de fonds (app.generer_appels) et détection des
 // anomalies de contact, contre le jeu de données de référence Mamelles
@@ -293,6 +294,24 @@ describe("intégration — base Mamelles Tower", () => {
           expect(reference).not.toMatch(/\s/);
           expect(reference.length).toBeLessThanOrEqual(16);
         }
+      });
+
+      it("le miroir TypeScript (aperçu du formulaire) rend exactement les références générées", async () => {
+        const { rows } = await client.query<{ reference: string }>(
+          `select reference from appels where periode_id = $1 order by numero`,
+          [periodeId],
+        );
+        // La période de test commence le 2027-01-01 : trimestriel, T1.
+        rows.forEach((ligne, index) => {
+          expect(ligne.reference).toBe(
+            rendreReference("{code}-{annee}{periode}-{seq}", {
+              code: "MT",
+              annee: 2027,
+              periode: codePeriode("trimestriel", 1),
+              seq: index + 1,
+            }),
+          );
+        });
       });
 
       it("sont uniques dans la période, et numérotées de 1 à N sans trou", async () => {

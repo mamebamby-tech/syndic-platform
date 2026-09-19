@@ -45,5 +45,8 @@ export function valeursDe(format: Formateur, locale: string) {
     // « 1er oct. 2026 » / « 1 Oct 2026 » : tableaux denses.
     dateCourte: (date: Date | string) =>
       premierDuMois(format.dateTime(enDate(date), "dateJuridiqueCourte"), locale),
+    // « 1er oct. 2026, 14:32 » : événement daté (journal).
+    dateHeure: (date: Date | string) =>
+      premierDuMois(format.dateTime(enDate(date), "dateHeure"), locale),
   };
 }

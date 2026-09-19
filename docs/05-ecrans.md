@@ -7,6 +7,15 @@ comportement.
 ## Côté syndic — poste de travail, 1280 px
 
 ### Tableau de bord
+**Construit à ce jour : le panneau « à traiter » pour les coordonnées de
+paiement** — état (renseignées ou non, l'émission des appels est bloquée
+tant qu'elles ne le sont pas), dernière modification, et **alerte permanente sur
+la dernière modification** : quand, par qui, ce qui a changé (avant → après,
+numéros masqués), avec un rappel de vérifier qu'elle est légitime. Sous le
+panneau, l'historique récent des modifications. C'est la page d'accueil de
+l'immeuble ; tout le personnel la voit, lecteurs compris. Le reste (chiffres du
+trimestre, comptes copropriétaires, répartition) n'est pas construit.
+
 Chiffres du trimestre : appelé, encaissé, reste à recouvrer, trésorerie. Tableau
 des comptes copropriétaires avec statut (à jour, partiel, impayé). Panneau « à
 traiter » : anomalies de contact, postes non chiffrés, échéances d'assemblée.
@@ -14,6 +23,18 @@ Répartition du budget par poste.
 
 **Sélecteur d'immeuble** en tête de la barre latérale : le cabinet en gère
 plusieurs. Le logo du cabinet ne change pas, le nom de l'immeuble si.
+
+### Paramètres de l'immeuble
+Réservé au gestionnaire et au `proprietaire_org` ; un lecteur ne voit ni
+l'entrée de menu ni le formulaire (et la base lui refuserait l'écriture de
+toute façon). Trois sections : **coordonnées bancaires du syndicat** (titulaire,
+banque, numéro ou IBAN, code SWIFT — requis dès que les virements internationaux
+sont acceptés), **moyens de paiement acceptés** (Wave, Orange Money, virement,
+virement international, espèces ; numéro marchand facultatif pour les deux moyens
+mobiles), **référence des appels** (code de l'immeuble, format à jetons, exemple
+en direct). Un compte partiellement rempli est signalé : l'émission reste
+bloquée. Toute modification des coordonnées est tracée et signalée sur le
+tableau de bord.
 
 ### Budget et clés de répartition
 Un poste par ligne : libellé, catégorie, fournisseur retenu, **clé de

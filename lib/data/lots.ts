@@ -1,5 +1,6 @@
 import "server-only";
 import { creerClientServeur } from "@/lib/supabase/server";
+import { sansMentionGroupe } from "@/lib/data/nom-groupe";
 import type { NatureDetention } from "@/lib/types/database";
 
 export interface DetenteurLot {
@@ -28,6 +29,10 @@ export interface RegistreLots {
 
 // Lecture seule : les lots d'un immeuble et leurs détenteurs actuels
 // (date_fin is null). Un lot en indivision affiche plusieurs détenteurs.
+function sansMentionGroupeOuNull(nom: string | undefined): string | null {
+  return nom === undefined ? null : sansMentionGroupe(nom);
+}
+
 export async function listerRegistreLots(immeubleId: string): Promise<RegistreLots> {
   const supabase = await creerClientServeur();
 
@@ -106,7 +111,7 @@ export async function listerRegistreLots(immeubleId: string): Promise<RegistreLo
       nature: rattachement.nature,
       quotePart: rattachement.quote_part,
       groupeNom: proprietaire.groupe_id
-        ? (nomGroupeParId.get(proprietaire.groupe_id) ?? null)
+        ? sansMentionGroupeOuNull(nomGroupeParId.get(proprietaire.groupe_id))
         : null,
     };
 

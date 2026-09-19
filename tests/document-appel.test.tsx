@@ -19,6 +19,8 @@ const contexte: ContexteDocument = {
   periodeLibelle: "4e trimestre 2026",
   compteSyndicat: null,
   moyensPaiementAcceptes: [],
+  numerosMarchands: {},
+  compteModifieLe: null,
 };
 
 const appel: AppelDetail = {
@@ -86,6 +88,26 @@ describe("document d'appel — Modalités de règlement", () => {
     expect(html).toContain("Chèque");
     expect(html).not.toContain("à renseigner");
     expect(html).not.toMatch(/\bBIC\b/);
+  });
+
+  it("affiche les numéros marchands avec leur moyen, et la date de dernière modification", async () => {
+    const html = texte(
+      await rendre({
+        ...contexte,
+        compteSyndicat: { titulaire: "T", banque: "B", numero: "N", bic: null },
+        moyensPaiementAcceptes: ["wave", "orange_money", "virement"],
+        numerosMarchands: { wave: "77 000 00 00" },
+        compteModifieLe: "2026-10-01T09:30:00Z",
+      }),
+    );
+    expect(html).toContain("Wave (numéro marchand 77 000 00 00)");
+    // Orange Money accepté sans numéro marchand : pas de parenthèse vide.
+    expect(html).toMatch(/Orange Money(?! \()/);
+    expect(html).toContain("Coordonnées modifiées le 1er octobre 2026");
+  });
+
+  it("sans modification enregistrée, aucune date de modification n'est affichée", async () => {
+    expect(texte(await rendre(contexte))).not.toContain("Coordonnées modifiées le");
   });
 
   it("affiche le BIC quand il existe", async () => {

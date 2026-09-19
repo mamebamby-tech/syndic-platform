@@ -70,6 +70,26 @@ un déclencheur (`app.verifier_emission_appel`) **refuse de faire passer un appe
 de `brouillon` à un statut émis** tant que titulaire, banque et numéro ne sont
 pas tous renseignés. Le contrôle vit en base, pas dans l'écran.
 
+**Les coordonnées de paiement** — compte du syndicat, `moyens_paiement_acceptes`
+et `numeros_marchands` (Wave, Orange Money, un numéro par moyen mobile accepté) —
+sont l'endroit où l'argent de tous les copropriétaires arrive : les modifier à
+mauvais escient le détourne sans qu'aucun calcul soit faux. Trois garde-fous, en
+base :
+
+- **qui** : lecture pour tout le personnel, modification pour le gestionnaire et
+  le `proprietaire_org`, création et suppression d'immeuble pour le
+  `proprietaire_org` seul. Un lecteur ne modifie rien ;
+- **trace** : chaque modification écrit une ligne de `journal` (avant, après,
+  auteur, date) par déclencheur, hors de portée de tout utilisateur — `journal`
+  n'a qu'une politique de lecture. `acteur_libelle` garde le courriel ou le
+  numéro de l'auteur ; supprimer son compte ne supprime pas la trace ;
+- **date** : `immeubles.compte_modifie_le` est posée par déclencheur, jamais
+  saisie (une date antidatée est écrasée). Les copropriétaires la voient sur
+  l'appel, pour repérer un changement de compte.
+
+Le format de la référence (`code_reference`, `format_reference_appel`) est tracé
+aussi, sous une autre action (`format_reference_modifie`), sans alerte.
+
 ### Une organisation garde toujours un `proprietaire_org`
 
 Sans lui, plus personne ne peut administrer les membres. Un déclencheur sur

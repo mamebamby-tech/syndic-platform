@@ -111,7 +111,12 @@ export function DocumentAppel({
           <dd className="text-encre">
             {contexte.moyensPaiementAcceptes.length > 0 ? (
               format.list(
-                contexte.moyensPaiementAcceptes.map((moyen) => t(`moyens.${moyen}`)),
+                contexte.moyensPaiementAcceptes.map((moyen) => {
+                  const numero = contexte.numerosMarchands[moyen];
+                  return numero
+                    ? t("moyens.avecNumero", { moyen: t(`moyens.${moyen}`), numero })
+                    : t(`moyens.${moyen}`);
+                }),
                 { type: "unit", style: "long" },
               )
             ) : (
@@ -139,6 +144,15 @@ export function DocumentAppel({
               <dt className="text-encre-3">{t("Appel.reglement.compte")}</dt>
               <dd className="rounded-control border border-dashed border-alerte px-2 py-1 text-alerte">
                 {t("Appel.reglement.compteARenseigner")}
+              </dd>
+            </>
+          )}
+
+          {contexte.compteModifieLe && (
+            <>
+              <dt className="text-encre-3">{t("Appel.reglement.modifieLe")}</dt>
+              <dd className="tabular-nums text-encre">
+                {valeurs.dateJuridique(contexte.compteModifieLe)}
               </dd>
             </>
           )}

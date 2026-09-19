@@ -191,7 +191,11 @@ describe("dates juridiques et financières — mois en toutes lettres", () => {
   });
 
   it("les seuls formats de date existants ont le mois en lettres", () => {
-    expect(Object.keys(formats.dateTime).sort()).toEqual(["dateJuridique", "dateJuridiqueCourte"]);
+    expect(Object.keys(formats.dateTime).sort()).toEqual([
+      "dateHeure",
+      "dateJuridique",
+      "dateJuridiqueCourte",
+    ]);
     for (const format of Object.values(formats.dateTime)) {
       expect(["long", "short"]).toContain(format.month);
     }

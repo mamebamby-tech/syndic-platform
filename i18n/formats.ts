@@ -39,6 +39,15 @@ export const formats = {
     // Forme abrégée pour les tableaux denses (« 1 oct. 2026 ») : le mois
     // reste en lettres, jamais en chiffres.
     dateJuridiqueCourte: { day: "numeric", month: "short", year: "numeric" },
+    // Avec l'heure : pour un événement daté (une modification du journal). Le mois
+    // reste en lettres. Fuseau UTC, comme partout (voir FUSEAU).
+    dateHeure: {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    },
   },
 } satisfies Formats;
 

@@ -23,7 +23,7 @@ export function SelecteurImmeuble({
         id="selecteur-immeuble"
         value={immeubleActuelId}
         onChange={(evenement) => {
-          router.push(`/immeubles/${evenement.target.value}/lots`);
+          router.push(`/immeubles/${evenement.target.value}`);
         }}
         className="h-11 w-full rounded-control border border-filet bg-surface px-3 text-sm font-medium text-encre outline-none focus:border-action"
       >

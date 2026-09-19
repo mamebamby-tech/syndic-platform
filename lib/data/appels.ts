@@ -50,6 +50,11 @@ export interface ContexteDocument {
   periodeLibelle: string;
   compteSyndicat: CompteSyndicat | null;
   moyensPaiementAcceptes: MoyenPaiement[];
+  // Numéro marchand par moyen mobile (wave, orange_money), pour les moyens acceptés.
+  numerosMarchands: Record<string, string>;
+  // Dernière modification des coordonnées de paiement : les copropriétaires la
+  // voient sur l'appel, pour repérer un changement de compte.
+  compteModifieLe: string | null;
 }
 
 export interface AppelsPeriode {
@@ -84,7 +89,7 @@ export async function listerAppelsDeLaPeriode(
       supabase
         .from("immeubles")
         .select(
-          "id, nom, organisation_id, compte_titulaire, compte_banque, compte_numero, compte_bic, moyens_paiement_acceptes",
+          "id, nom, organisation_id, compte_titulaire, compte_banque, compte_numero, compte_bic, moyens_paiement_acceptes, numeros_marchands, compte_modifie_le",
         )
         .eq("id", immeubleId)
         .single(),
@@ -124,6 +129,8 @@ export async function listerAppelsDeLaPeriode(
     periodeLibelle,
     compteSyndicat: compteRenseigne(immeuble),
     moyensPaiementAcceptes: immeuble.moyens_paiement_acceptes,
+    numerosMarchands: immeuble.numeros_marchands,
+    compteModifieLe: immeuble.compte_modifie_le,
   };
 
   const appelIds = (appels ?? []).map((appel) => appel.id);

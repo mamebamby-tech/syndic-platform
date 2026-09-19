@@ -8,10 +8,13 @@ export function BarreLaterale({
   organisationNom,
   immeubles,
   immeubleActuelId,
+  peutParametrer,
 }: {
   organisationNom: string;
   immeubles: ImmeubleAvecOrganisation[];
   immeubleActuelId: string;
+  // Gestionnaire ou proprietaire_org : le lecteur ne voit pas l'entrée.
+  peutParametrer: boolean;
 }) {
   const t = useTranslations("Navigation");
 
@@ -25,9 +28,15 @@ export function BarreLaterale({
       </div>
 
       <nav className="flex-1 space-y-1 p-3">
+        <LienNav href={`/immeubles/${immeubleActuelId}`} exact>
+          {t("tableauDeBord")}
+        </LienNav>
         <LienNav href={`/immeubles/${immeubleActuelId}/lots`}>{t("registreLots")}</LienNav>
         <LienNav href={`/immeubles/${immeubleActuelId}/budget`}>{t("budget")}</LienNav>
         <LienNav href={`/immeubles/${immeubleActuelId}/appels`}>{t("appels")}</LienNav>
+        {peutParametrer && (
+          <LienNav href={`/immeubles/${immeubleActuelId}/parametres`}>{t("parametres")}</LienNav>
+        )}
       </nav>
 
       <form action={seDeconnecter} className="border-t border-filet p-3">
