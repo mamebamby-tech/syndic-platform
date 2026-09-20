@@ -10,21 +10,36 @@
 // de celle des clés réelles (.env.reel), présence de « SCI ALIZE », aucune adresse
 // hors example.*. Il ne lit que .env.local.
 //
-// Le lien passe par /auth/confirmation, route qui n'existe qu'en développement.
+// Le lien passe par /auth/confirmation, route qui n'existe qu'en développement (`next dev`).
+//
+// Option : --retour=<adresse du site> fixe l'adresse où le lien ramène (un téléphone sur le
+// réseau local, un tunnel vers `next dev`). Sans elle : NEXT_PUBLIC_SITE_URL, sinon localhost.
+// npm exige `--` avant elle : npm run dev:lien -- <adresse électronique> --retour=<adresse>.
+// Le garde-fou ci-dessus s'applique à l'identique : --retour ne change JAMAIS la base visée.
 import { createClient } from "@supabase/supabase-js";
 import { Client } from "pg";
 import { EnvironnementDeTestInterdit, garderEnvironnement } from "../tests/garde-environnement.ts";
-
-const UTILISATION = "Utilisation : npm run dev:lien <adresse électronique>";
+import {
+  adresseDuLien,
+  adresseDuSite,
+  ErreurUtilisation,
+  estAdresseLocale,
+  lireArguments,
+} from "./dev-lien-options.ts";
 
 function arreter(message: string, code = 1): never {
   console.error(message);
   process.exit(code);
 }
 
-const email = process.argv[2]?.trim();
-if (!email) arreter(UTILISATION, 2);
-if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) arreter(`Adresse invalide : « ${email} ».\n${UTILISATION}`, 2);
+let email: string;
+let retour: string | null;
+try {
+  ({ email, retour } = lireArguments(process.argv.slice(2), process.env));
+} catch (erreur) {
+  if (erreur instanceof ErreurUtilisation) arreter(erreur.message, 2);
+  throw erreur;
+}
 
 // 1. Le garde-fou, AVANT tout : rien n'est fait tant que la cible n'est pas
 // prouvée être syndic-dev.
@@ -63,8 +78,15 @@ if (error || !data.properties?.hashed_token) {
   arreter(`Génération du lien impossible : ${error?.message ?? "réponse sans jeton"}`);
 }
 
-const site = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
-const lien = `${site}/auth/confirmation?token_hash=${encodeURIComponent(data.properties.hashed_token)}&type=email`;
+const site = adresseDuSite(retour, process.env.NEXT_PUBLIC_SITE_URL);
+const lien = adresseDuLien(site, data.properties.hashed_token);
 
 console.log(`\nLien de connexion pour ${email} (syndic-dev, aucun courriel envoyé) :\n\n  ${lien}\n`);
+console.log(`Adresse de retour : ${site}${retour ? " (option --retour)" : ""}`);
+if (retour && !estAdresseLocale(site)) {
+  console.log(
+    "⚠ Cette adresse n'est ni cette machine ni un réseau privé. La route /auth/confirmation n'existe qu'en\n" +
+      "  développement : sur un déploiement (Vercel), elle répond 404. Le lien ne fonctionne que vers un `next dev`.",
+  );
+}
 console.log("À usage unique, il expire rapidement. Il faut que `npm run dev` tourne sur " + site + ".\n");

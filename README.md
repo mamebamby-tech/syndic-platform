@@ -178,12 +178,22 @@ envoyer de courriel :
 
 ```bash
 npm run dev:lien mamebamby+dev2@gmail.com
+npm run dev:lien -- mamebamby+dev2@gmail.com --retour=http://192.168.1.20:3000
 ```
 
 Il refuse de s'exécuter si la base cible n'est pas syndic-dev (même garde-fou que
 les tests : voir « Environnements »), ne crée jamais de compte, et le lien passe par
 `/auth/confirmation`, une route qui n'existe pas en production. `npm run dev` doit
 tourner.
+
+`--retour=<adresse du site>` (facultative) fixe l'adresse où le lien ramène : un
+téléphone sur le réseau local, un tunnel vers `npm run dev`. Sans elle, le lien
+ramène à `NEXT_PUBLIC_SITE_URL`, sinon à `http://localhost:3000`. L'adresse est celle
+du site seule : `http` ou `https`, sans chemin, paramètres ni identifiants. **`--` est
+obligatoire avant elle** (`npm run dev:lien -- <adresse électronique> --retour=…`), sinon
+npm la prend pour sa propre option. Elle ne change jamais la base visée : le garde-fou
+s'applique à l'identique. Vers une adresse qui n'est ni locale ni privée, la commande
+avertit que la route n'existe pas sur un déploiement.
 
 ### Décalage d'horloge (« JWT issued at future »)
 
