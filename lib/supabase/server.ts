@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@/lib/types/database";
+import { fetchAvecReprise } from "@/lib/supabase/reprise";
 
 // Client Supabase pour Server Components et Server Actions.
 // Respecte la sécurité par ligne : jamais la clé de service ici.
@@ -11,6 +12,8 @@ export async function creerClientServeur() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // Décalage d'horloge après une connexion ou un rafraîchissement de jeton : voir reprise.ts.
+      global: { fetch: fetchAvecReprise() },
       cookies: {
         getAll() {
           return magasinCookies.getAll();

@@ -10,8 +10,6 @@ import { NextRequest } from "next/server";
 // chose que syndic-dev, avec le même garde-fou que la suite de tests.
 
 const SCRIPT = resolve("scripts/dev-lien.ts");
-// Pas d'attente d'horloge dans les tests de la route (voir app/auth/confirmation/route.ts).
-process.env.DEV_LIEN_ATTENTE_MS = "0";
 const REF = "abcdefghijklmnopqrst"; // référence factice : aucune valeur réelle dans ce fichier
 
 // Lance le script dans un dossier de travail jetable : c'est le dossier courant qui
