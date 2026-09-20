@@ -4,6 +4,8 @@ import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { Newsreader, Public_Sans } from "next/font/google";
 import { messagesPourLeNavigateur } from "@/lib/i18n/messages";
 import { nom, baseline } from "@/lib/marque";
+import { enDemonstration, robotsDeLaPage } from "@/lib/demonstration";
+import { BandeauDemonstration } from "@/components/ui/bandeau-demonstration";
 import "./globals.css";
 
 const newsreader = Newsreader({
@@ -23,6 +25,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `${nom} — ${baseline}`,
     description: t("description"),
+    // <meta name="robots" content="noindex, nofollow"> en démonstration seulement.
+    robots: robotsDeLaPage(),
   };
 }
 
@@ -33,10 +37,12 @@ export default async function RootLayout({
 }) {
   const locale = await getLocale();
   const messages = await getMessages();
+  const tDemonstration = await getTranslations("Demonstration");
 
   return (
     <html lang={locale} className={`${newsreader.variable} ${publicSans.variable}`}>
       <body>
+        {enDemonstration() && <BandeauDemonstration texte={tDemonstration("bandeau")} />}
         <NextIntlClientProvider messages={messagesPourLeNavigateur(messages)}>
           {children}
         </NextIntlClientProvider>

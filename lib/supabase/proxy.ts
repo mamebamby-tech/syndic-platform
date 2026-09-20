@@ -2,15 +2,17 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/types/database";
 import { fetchAvecReprise } from "@/lib/supabase/reprise";
+import { lireEnvSupabase } from "@/lib/supabase/env";
 
 // Rafraîchit la session à chaque requête, condition pour que la sécurité
 // par ligne dispose toujours d'un auth.uid() à jour côté serveur.
 export async function mettreAJourSession(request: NextRequest) {
   let reponse = NextResponse.next({ request });
+  const { url, cleAnonyme } = lireEnvSupabase();
 
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    cleAnonyme,
     {
       global: { fetch: fetchAvecReprise() },
       cookies: {

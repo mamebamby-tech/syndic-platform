@@ -49,6 +49,12 @@ a d'abord été appliquée et vérifiée sur syndic-dev (d'abord en transaction
 annulée), puis appliquée sur la base réelle **en la désignant explicitement**
 — jamais en changeant `.env.local` pour l'occasion.
 
+### Déploiement de démonstration
+
+L'application déployée sur Vercel pour montrer le produit est reliée à **syndic-dev** et
+portée par `DEMONSTRATION=1` : `docs/09-deploiement.md` donne les variables exactes, leur
+provenance dans Supabase, et lesquelles sont serveur uniquement.
+
 ### Où en est chaque base : le suivi des migrations
 
 Chaque base tient l'historique de ses migrations (`supabase_migrations.schema_migrations`,

@@ -397,5 +397,8 @@
       "acces_refuse": "Seuls le gestionnaire et le proprietaire_org peuvent enregistrer ou annuler un paiement.",
       "enregistrement_impossible": "L'opération a échoué. Rien n'a été enregistré : réessayez."
     }
+  },
+  "Demonstration": {
+    "bandeau": "Version de démonstration — données fictives"
   }
 }
