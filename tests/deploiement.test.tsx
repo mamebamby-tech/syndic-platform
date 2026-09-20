@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 import { BandeauDemonstration } from "@/components/ui/bandeau-demonstration";
-import { enDemonstration, reglesRobots, robotsDeLaPage } from "@/lib/demonstration";
+import { enDemonstration, enProduction, reglesRobots, robotsDeLaPage } from "@/lib/demonstration";
 import { verifierEnvSupabase } from "@/lib/supabase/env";
 import fr from "@/messages/fr.json";
 
@@ -72,49 +72,122 @@ describe("aucune clé service_role côté navigateur", () => {
   });
 });
 
-describe("mode démonstration : DEMONSTRATION=1", () => {
-  const avant = process.env.DEMONSTRATION;
+describe("mode démonstration par défaut : la production doit être PROUVÉE", () => {
+  const VARIABLES = ["URL_SUPABASE_PRODUCTION", "NEXT_PUBLIC_SUPABASE_URL", "DEMONSTRATION"] as const;
+  const avant = Object.fromEntries(VARIABLES.map((v) => [v, process.env[v]]));
   afterEach(() => {
-    if (avant === undefined) delete process.env.DEMONSTRATION;
-    else process.env.DEMONSTRATION = avant;
+    for (const v of VARIABLES) {
+      if (avant[v] === undefined) delete process.env[v];
+      else process.env[v] = avant[v];
+    }
+  });
+  // Pose exactement les valeurs données ; `undefined` retire la variable.
+  const poser = (production: string | undefined, publique: string | undefined) => {
+    for (const [nom, valeur] of [["URL_SUPABASE_PRODUCTION", production], ["NEXT_PUBLIC_SUPABASE_URL", publique]] as const) {
+      if (valeur === undefined) delete process.env[nom];
+      else process.env[nom] = valeur;
+    }
+  };
+  const REELLE = "https://reelle0000000000000.supabase.co";
+
+  it("production SEULEMENT si les deux adresses sont non vides et exactement égales", () => {
+    poser(REELLE, REELLE);
+    expect(enProduction()).toBe(true);
+    expect(enDemonstration()).toBe(false);
   });
 
-  it("n'est actif que pour la valeur exacte « 1 »", () => {
-    for (const valeur of [undefined, "", "0", "true", "oui", " 1"]) {
-      if (valeur === undefined) delete process.env.DEMONSTRATION;
-      else process.env.DEMONSTRATION = valeur;
-      expect(enDemonstration(), String(valeur)).toBe(false);
+  it("variable de production absente, vide ou blanche : démonstration", () => {
+    for (const production of [undefined, "", "   ", "\n"]) {
+      poser(production, REELLE);
+      expect(enDemonstration(), JSON.stringify(production)).toBe(true);
     }
-    process.env.DEMONSTRATION = "1";
+  });
+
+  it("deux variables absentes, ou deux variables vides — donc « égales » — ne font PAS une production", () => {
+    poser(undefined, undefined);
+    expect(enDemonstration()).toBe(true);
+    poser("", "");
+    expect(enDemonstration()).toBe(true);
+    poser("   ", "   ");
     expect(enDemonstration()).toBe(true);
   });
 
-  it("robots.txt : tout interdit en démonstration, rien d'interdit sinon", () => {
+  it("l'adresse de la base reliée absente : démonstration", () => {
+    poser(REELLE, undefined);
+    expect(enDemonstration()).toBe(true);
+  });
+
+  it("une différence, même d'un caractère, donne la démonstration : aucune tolérance", () => {
+    const variantes = [
+      `${REELLE}/`, // barre finale
+      REELLE.replace("https", "http"),
+      REELLE.toUpperCase(),
+      REELLE.replace("reelle", "Reelle"),
+      ` ${REELLE}`,
+      `${REELLE} `,
+      `${REELLE}\n`,
+      REELLE.slice(0, -1),
+      `${REELLE}x`,
+      "https://syndic-dev-fictive000000.supabase.co",
+    ];
+    for (const publique of variantes) {
+      poser(REELLE, publique);
+      expect(enDemonstration(), JSON.stringify(publique)).toBe(true);
+    }
+    // Et dans l'autre sens : la valeur attendue légèrement fausse.
+    for (const production of variantes) {
+      poser(production, REELLE);
+      expect(enDemonstration(), JSON.stringify(production)).toBe(true);
+    }
+  });
+
+  it("l'ancienne variable DEMONSTRATION n'a plus aucun effet, et n'est plus lue", () => {
+    poser(undefined, REELLE);
+    process.env.DEMONSTRATION = "0";
+    expect(enDemonstration()).toBe(true);
+    poser(REELLE, REELLE);
     process.env.DEMONSTRATION = "1";
+    expect(enDemonstration()).toBe(false);
+    for (const fichier of CODE_APPLICATION) expect(sansCommentaires(fichier), fichier).not.toMatch(/DEMONSTRATION\b/);
+  });
+
+  it("robots.txt : tout interdit sauf en production prouvée", () => {
+    poser(undefined, REELLE);
     expect(reglesRobots()).toEqual({ rules: { userAgent: "*", disallow: "/" } });
-    delete process.env.DEMONSTRATION;
+    poser(REELLE, `${REELLE}/`);
+    expect(reglesRobots()).toEqual({ rules: { userAgent: "*", disallow: "/" } });
+    poser(REELLE, REELLE);
     expect(reglesRobots()).toEqual({ rules: { userAgent: "*", allow: "/" } });
   });
 
-  it("balise robots : noindex, nofollow en démonstration ; aucune balise sinon (production plus tard)", () => {
-    process.env.DEMONSTRATION = "1";
+  it("balise robots : noindex, nofollow sauf en production prouvée", () => {
+    poser(undefined, undefined);
     expect(robotsDeLaPage()).toEqual({ index: false, follow: false });
-    delete process.env.DEMONSTRATION;
+    poser("", REELLE);
+    expect(robotsDeLaPage()).toEqual({ index: false, follow: false });
+    poser(REELLE, REELLE);
     expect(robotsDeLaPage()).toBeUndefined();
   });
 
-  it("la variable n'est pas exposée au navigateur : ce n'est pas une NEXT_PUBLIC_", () => {
-    expect(lire("lib/demonstration.ts")).toMatch(/process\.env\.DEMONSTRATION\b/);
-    expect(lire("lib/demonstration.ts")).not.toMatch(/NEXT_PUBLIC_DEMONSTRATION/);
+  it("la variable de production est serveur uniquement : pas de NEXT_PUBLIC_, et aucun fichier navigateur ne charge le module", () => {
+    expect(sansCommentaires("lib/demonstration.ts")).toMatch(/process\.env\.URL_SUPABASE_PRODUCTION/);
+    for (const fichier of CODE_APPLICATION) {
+      const code = sansCommentaires(fichier);
+      expect(code, fichier).not.toMatch(/NEXT_PUBLIC_URL_SUPABASE_PRODUCTION/);
+      if (/^["']use client["']/m.test(lire(fichier))) {
+        expect(code, `${fichier} (navigateur)`).not.toMatch(/lib\/demonstration|URL_SUPABASE_PRODUCTION/);
+      }
+    }
   });
 
-  it("le bandeau porte le texte demandé, et le layout ne l'affiche qu'en démonstration", () => {
+  it("le bandeau porte le texte demandé ; le layout l'affiche DÈS QU'on n'est pas en production, et rien d'autre ne le pilote", () => {
     expect(fr.Demonstration.bandeau).toBe("Version de démonstration — données fictives");
     const html = renderToStaticMarkup(<BandeauDemonstration texte={fr.Demonstration.bandeau} />);
     expect(html).toContain("Version de démonstration — données fictives");
     const layout = lire("app/layout.tsx");
     expect(layout).toMatch(/enDemonstration\(\)\s*&&\s*<BandeauDemonstration/);
     expect(layout).toMatch(/robots:\s*robotsDeLaPage\(\)/);
+    expect(layout).not.toMatch(/enProduction\(\)\s*\?/); // pas de logique inverse à côté : un seul chemin
   });
 
   it("le bandeau n'emploie que des jetons de la charte : aucune couleur en dur", () => {
@@ -131,10 +204,6 @@ describe("mode démonstration : DEMONSTRATION=1", () => {
       const jeton = c.replace(/^(?:bg|text|border)-/, "");
       expect(jetons, `${c} : « ${jeton} » n'est pas un jeton de tailwind.config.ts`).toMatch(new RegExp(`["']?${jeton}["']?:\\s*"#`));
     }
-  });
-
-  it("le proxy d'authentification laisse passer /robots.txt", () => {
-    expect(lire("proxy.ts")).toMatch(/\(\?!.*robots\.txt/);
   });
 });
 

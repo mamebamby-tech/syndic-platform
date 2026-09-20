@@ -51,9 +51,10 @@ annulée), puis appliquée sur la base réelle **en la désignant explicitement*
 
 ### Déploiement de démonstration
 
-L'application déployée sur Vercel pour montrer le produit est reliée à **syndic-dev** et
-portée par `DEMONSTRATION=1` : `docs/09-deploiement.md` donne les variables exactes, leur
-provenance dans Supabase, et lesquelles sont serveur uniquement.
+L'application déployée sur Vercel pour montrer le produit est reliée à **syndic-dev**. Le
+mode se déduit : l'application est en **démonstration** (bandeau, indexation interdite) sauf si
+`NEXT_PUBLIC_SUPABASE_URL` est exactement égale à `URL_SUPABASE_PRODUCTION`. `docs/09-deploiement.md`
+donne les variables exactes, leur provenance dans Supabase, et lesquelles sont serveur uniquement.
 
 ### Où en est chaque base : le suivi des migrations
 

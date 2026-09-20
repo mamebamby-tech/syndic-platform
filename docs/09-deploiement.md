@@ -1,11 +1,30 @@
-# Déploiement de démonstration sur Vercel
+# Déploiement sur Vercel : démonstration et production
 
-Ce document décrit **uniquement** le déploiement de démonstration : l'application sur Vercel,
-reliée à **syndic-dev** (la base fictive : Mamelles Tower, adresses en `example.*`). La base
-réelle n'y figure pas, et **aucune de ses clés ne doit être saisie dans Vercel pour ce
-déploiement** (voir « Ce qui ne doit jamais arriver »).
+Ce document décrit la **démonstration** : l'application sur Vercel, reliée à **syndic-dev** (la
+base fictive : Mamelles Tower, adresses en `example.*`). La base réelle n'y figure pas, et
+**aucune de ses clés ne doit être saisie dans Vercel pour ce déploiement**.
 
-Vérifié le 20/09/2026 sur le dépôt : le code de l'application lit **trois** variables, pas plus.
+Vérifié le 20/09/2026 sur le dépôt : le code de l'application lit **trois** variables, pas plus
+(hors `NODE_ENV`, posée par Vercel).
+
+## Le mode se déduit : la démonstration est l'état par défaut
+
+L'application est en **production** si, et seulement si, `NEXT_PUBLIC_SUPABASE_URL` est
+**exactement égale** à `URL_SUPABASE_PRODUCTION`. Dans tous les autres cas, elle est en
+**démonstration** : bandeau « Version de démonstration — données fictives » sur chaque page,
+`robots.txt` qui interdit tout, balise `noindex, nofollow`.
+
+| Situation | Mode |
+|---|---|
+| `URL_SUPABASE_PRODUCTION` absente ou vide | démonstration |
+| `URL_SUPABASE_PRODUCTION` différente de `NEXT_PUBLIC_SUPABASE_URL`, même d'un caractère (barre finale, majuscule, `http` au lieu de `https`, espace) | démonstration |
+| `NEXT_PUBLIC_SUPABASE_URL` absente | démonstration (et l'application refuse de démarrer : elle en a besoin) |
+| Les deux égales, non vides | **production** |
+
+Un oubli de configuration donne donc une démonstration, jamais un site de production indexé.
+La comparaison est volontairement stricte, sans aucune tolérance : une adresse légèrement fausse
+retombe du bon côté. **En local** (`npm run dev`), `URL_SUPABASE_PRODUCTION` n'existe pas : le
+bandeau s'affiche, ce qui est juste, les données étant fictives.
 
 ## Variables à saisir dans Vercel
 
@@ -14,18 +33,24 @@ Vercel : *Project > Settings > Environment Variables*, environnement **Productio
 changement : les variables `NEXT_PUBLIC_` sont **figées au build**, elles ne se lisent pas à
 l'exécution.
 
+### Pour la démonstration : deux variables
+
 | Variable | Valeur | D'où elle vient | Visible du navigateur ? |
 |---|---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://<référence>.supabase.co` | Supabase, projet **syndic-dev** : *Project Settings > API > Project URL* | **Oui** — publique, part dans le navigateur |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | clé « anon » (jeton `eyJ…`) ou « publishable » (`sb_publishable_…`) | Supabase, projet **syndic-dev** : *Project Settings > API > Project API keys > anon / public* (ou *API Keys > Publishable key*) | **Oui** — publique par conception : c'est la sécurité par ligne qui protège les données |
-| `DEMONSTRATION` | `1` | Ne vient pas de Supabase : c'est un réglage de ce déploiement | **Non — serveur uniquement** |
+
+### La variable qui bascule en production : à ne pas saisir pour la démonstration
+
+| Variable | Valeur | D'où elle vient | Visible du navigateur ? |
+|---|---|---|---|
+| `URL_SUPABASE_PRODUCTION` | l'adresse de la **base réelle**, identique à la `NEXT_PUBLIC_SUPABASE_URL` du déploiement réel | Supabase, projet **de production** : *Project Settings > API > Project URL* — à saisir **uniquement** sur le déploiement réel | **Non — serveur uniquement** |
 
 À retenir :
 
-- **Une seule de ces trois est serveur uniquement : `DEMONSTRATION`.** Elle ne porte pas le préfixe `NEXT_PUBLIC_`, donc Next.js ne la met jamais dans le navigateur. Elle sert à afficher le bandeau, à poser `noindex, nofollow` et à écrire `robots.txt`.
-- Les deux autres sont **publiques** : ne pas s'inquiéter qu'elles soient visibles, mais **vérifier que la seconde est bien la clé « anon »** et non la clé « service_role », affichée juste en dessous sur le même écran de Supabase. L'application refuse de démarrer (erreur explicite dans les journaux) si le jeton de cette variable déclare le rôle `service_role`.
-- `DEMONSTRATION` vaut exactement `1`. Toute autre valeur (`true`, `oui`, `0`, vide) laisse le mode inactif.
-- **`DEMONSTRATION=1` ne se pose jamais sur un déploiement relié à la base réelle** : le bandeau y affirmerait que les données sont fictives. Contrôle avant de saisir : l'hôte de `NEXT_PUBLIC_SUPABASE_URL` est celui de votre `.env.local` (syndic-dev), et **différent** de celui de `.env.reel`.
+- **`URL_SUPABASE_PRODUCTION` est la seule variable serveur uniquement que lit l'application.** Elle ne porte pas le préfixe `NEXT_PUBLIC_`, donc Next.js ne la met jamais dans le navigateur. **Sur la démonstration, elle n'existe pas.**
+- Les deux variables publiques peuvent être visibles de tous : **vérifiez que la seconde est bien la clé « anon »**, et non la clé « service_role » affichée juste en dessous sur le même écran de Supabase. L'application refuse de démarrer (erreur explicite dans les journaux) si le jeton de cette variable déclare le rôle `service_role`.
+- Pour le **déploiement réel** (plus tard) : saisir `NEXT_PUBLIC_SUPABASE_URL` et `URL_SUPABASE_PRODUCTION` avec la **même** adresse. Si l'une est fausse, le déploiement reste en démonstration, visible immédiatement (bandeau, `robots.txt`) : rien n'est indexé.
 - `NODE_ENV` est posée par Vercel : ne pas la saisir. En production, la route de connexion par lien (`/auth/confirmation`) n'existe pas : elle répond 404.
 
 ## Variables à ne pas saisir
@@ -36,7 +61,7 @@ l'exécution.
 | `DATABASE_URL` | **Serveur uniquement, non lue par l'application.** Connexion directe à Postgres (migrations, tests, seed) : réservée au poste de développement. |
 | `NEXT_PUBLIC_SITE_URL` | Lue seulement par `npm run dev:lien`. L'adresse du site que Supabase Auth utilise se règle dans Supabase (voir ci-dessous), pas ici. |
 | `PAIEMENT_*`, `WHATSAPP_*`, `EMAIL_*` | Aucun code ne les lit encore : ces intégrations ne sont pas construites (voir `docs/08-mise-en-service.md`). |
-| Toute clé, URL ou mot de passe de la base **réelle** | Voir « Ce qui ne doit jamais arriver ». |
+| Toute clé, URL ou mot de passe de la base **réelle**, sur la démonstration | Voir « Ce qui ne doit jamais arriver ». |
 
 ## Réglages de Supabase (syndic-dev), qui ne sont pas des variables
 
@@ -51,10 +76,12 @@ Sans eux, l'application se déploie mais **personne ne peut se connecter**.
 
 ## Après le déploiement : quatre contrôles
 
-1. `https://<démonstration>/robots.txt` affiche `User-Agent: *` puis `Disallow: /` (et sans `DEMONSTRATION=1` : `Allow: /`).
+1. `https://<démonstration>/robots.txt` affiche `User-Agent: *` puis `Disallow: /`.
 2. Le code source d'une page contient `<meta name="robots" content="noindex, nofollow"/>`.
 3. Le bandeau « Version de démonstration — données fictives » s'affiche en haut de chaque page, y compris `/login`.
 4. `https://<démonstration>/auth/confirmation` répond **404**.
+
+Sur le déploiement **réel**, les contrôles 1 à 3 s'inversent (`Allow: /`, pas de balise, pas de bandeau) : c'est la preuve que `URL_SUPABASE_PRODUCTION` est exacte. Si le bandeau est encore là, la variable est absente ou différente : la corriger, puis redéployer.
 
 Si `/login` répond 500 : ouvrir les journaux de la fonction dans Vercel. L'erreur nomme la variable absente (« `NEXT_PUBLIC_SUPABASE_URL` est absente ou vide… ») ; la saisir, puis **redéployer**.
 
@@ -71,13 +98,13 @@ Audit du dépôt et du build, le 20/09/2026.
 - **Aucune mention** dans `app/`, `lib/`, `components/`, `i18n/`, `proxy.ts`, `next.config.ts`.
 - **Fichiers `'use client'`** (neuf) : aucun ne lit de variable autre que `NEXT_PUBLIC_`. Seul `lib/supabase/client.ts`, qu'ils utilisent, lit `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 - **Sortie du build** : la clé de service, la chaîne `DATABASE_URL` et son mot de passe sont **absents** de `.next/static` (envoyé au navigateur) et de `.next/server`.
-- Ces constats sont gardés par `tests/deploiement.test.tsx` : le test échoue si le code lit la clé de service, si une variable `NEXT_PUBLIC_` porte un secret, ou si `docs/09` ne liste pas exactement les variables que le code lit.
+- Ces constats sont gardés par `tests/deploiement.test.tsx` : le test échoue si le code lit la clé de service, si une variable `NEXT_PUBLIC_` porte un secret, ou si ce document ne liste pas exactement les variables que le code lit.
 
 ## Ce qui ne doit jamais arriver
 
-- Saisir dans Vercel une URL ou une clé de la base réelle pour ce déploiement. La démonstration n'a pas accès à la base réelle par construction : `.env.reel` n'est ni versionné ni chargé par rien.
-- Poser `DEMONSTRATION=1` sur le déploiement qui servira la base réelle : il interdirait l'indexation et affirmerait à tort que les données sont fictives. Le déploiement réel n'a pas cette variable.
+- Saisir dans Vercel une URL ou une clé de la base réelle pour la démonstration. La démonstration n'a pas accès à la base réelle par construction : `.env.reel` n'est ni versionné ni chargé par rien.
 - Copier la clé « service_role » dans une variable `NEXT_PUBLIC_…`, ou dans Vercel tout court.
+- Saisir `URL_SUPABASE_PRODUCTION` sur la démonstration, ou sur un déploiement relié à syndic-dev : elle serait égale à `NEXT_PUBLIC_SUPABASE_URL` si on la copiait, et la démonstration passerait en production, sans bandeau et indexable, avec des données fictives. La valeur est **toujours** l'adresse de la base réelle, jamais celle de syndic-dev.
 
 ## Limite connue du mode « noindex »
 
