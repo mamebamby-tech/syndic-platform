@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "next dev",
     "dev:lien": "node scripts/dev-lien.ts",
+    "db:etat": "node scripts/migrations.ts etat",
+    "db:adopter": "node scripts/migrations.ts adopter",
+    "db:appliquer": "node scripts/migrations.ts appliquer",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
