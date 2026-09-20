@@ -14,7 +14,8 @@ code à usage unique, coquille de navigation avec sélecteur d'immeuble, registr
 des lots, budget d'une période avec clés de répartition éditables, génération
 et consultation des appels de fonds (avec aperçu du document nominatif), relevé
 consolidé par propriétaire, paramètres de l'immeuble (coordonnées de paiement
-tracées, référence des appels) et un tableau de bord réduit à ses alertes. L'encaissement des paiements et l'envoi
+tracées, référence des appels), l'enregistrement manuel des paiements (sur la fiche du
+propriétaire, le statut des appels suit) et un tableau de bord réduit à ses alertes. Le paiement en ligne et l'envoi
 effectif (WhatsApp, courriel) restent à construire — voir
 `docs/06-decisions.md`, « Chantiers différés ».
 
