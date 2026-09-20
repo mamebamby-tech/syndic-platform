@@ -285,7 +285,9 @@ describe("structure — le garde-fou ne peut pas être oublié", () => {
       /require\(\s*["']pg["']\s*\)/,
       /from\s+["']postgres["']/,
     ];
-    const autorises = new Set(["pg.ts", "garde-environnement.ts", "garde-environnement.test.ts"]);
+    // dev-lien.test.ts CITE ces motifs dans ses attentes (le script ne doit pas ouvrir
+    // de client avant le garde-fou) : il ne les EXÉCUTE pas, et ne se connecte à rien.
+    const autorises = new Set(["pg.ts", "garde-environnement.ts", "garde-environnement.test.ts", "dev-lien.test.ts"]);
     const fichiers = readdirSync("tests").filter((f) => /\.(ts|tsx)$/.test(f));
     expect(fichiers.length).toBeGreaterThan(8);
     for (const fichier of fichiers) {
@@ -299,7 +301,9 @@ describe("structure — le garde-fou ne peut pas être oublié", () => {
   });
 
   it("aucun test, aucun chargeur d'environnement ne lit les clés de la base réelle", () => {
-    const autorises = new Set(["garde-environnement.ts", "garde-environnement.test.ts"]);
+    // dev-lien.test.ts écrit de FAUX .env.reel dans des dossiers jetables pour prouver que
+    // la commande les refuse ; il ne lit jamais les vrais.
+    const autorises = new Set(["garde-environnement.ts", "garde-environnement.test.ts", "dev-lien.test.ts"]);
     for (const fichier of readdirSync("tests")) {
       if (autorises.has(fichier) || !/\.(ts|tsx)$/.test(fichier)) continue;
       const code = lire(join("tests", fichier))

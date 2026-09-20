@@ -135,6 +135,21 @@ npm install
 npm run dev
 ```
 
+**Se connecter sans attendre un courriel.** `npm run dev:lien <adresse>` affiche un
+lien de connexion à usage unique pour un compte **existant** de syndic-dev, sans
+envoyer de courriel :
+
+```bash
+npm run dev:lien mamebamby+dev2@gmail.com
+```
+
+Il refuse de s'exécuter si la base cible n'est pas syndic-dev (même garde-fou que
+les tests : voir « Environnements »), ne crée jamais de compte, et le lien passe par
+`/auth/confirmation`, une route qui n'existe pas en production. `npm run dev` doit
+tourner. Le lien attend quelques secondes avant de rediriger : Supabase émet le
+jeton avec l'horloge de son service d'authentification, et PostgREST le refuse
+(« JWT issued at future ») s'il retarde, même d'une seconde.
+
 Sur `http://localhost:3000`, la connexion redirige vers `/login` tant
 qu'aucune session n'est ouverte. Après une première connexion par code à
 usage unique, il faut une ligne dans `membres` (organisation_id, user_id,
