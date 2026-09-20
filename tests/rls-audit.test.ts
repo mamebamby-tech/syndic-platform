@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Client } from "pg";
 import { connecter } from "./pg";
 import { commeUtilisateur } from "./simuler-utilisateur";
+import { essayer } from "./aides";
 
 // Audit complet de la sécurité par ligne (CLAUDE.md règle n°2), dans le
 // prolongement de tests/rls-multitenant.test.ts. Deux volets :
@@ -47,6 +48,7 @@ describe("audit RLS — toutes les tables du schéma public", () => {
   let versionPaiementId: string;
 
   let userGestionnaireMamelles: string;
+  let userLecteurMamelles: string;
   let userGestionnaireAutreCabinet: string;
   let autreOrganisationId: string;
   let autreImmeubleId: string;
@@ -64,8 +66,34 @@ describe("audit RLS — toutes les tables du schéma public", () => {
   let occupantId: string;
   let accesPersonneId: string;
 
+  // Purge les résidus d'un run INTERROMPU (arrêt de la suite, coupure réseau) : sans
+  // elle, ses fixtures encore en base font échouer le beforeAll suivant (slug déjà
+  // pris) et TOUS les tests du fichier sont sautés, définitivement. Chaque ligne se
+  // reconnaît à son marqueur propre ; les comptes de test n'ont ni courriel, ni
+  // téléphone, ni date de création (seul l'identifiant est inséré).
+  async function purgerResidus(c: Client) {
+    for (const sql of [
+      `delete from paiements where appel_id in (select id from appels where reference = 'TEST-AUDIT-RLS')`,
+      `delete from assemblees where id in (select assemblee_id from resolutions where titre = 'Résolution de test')`,
+      `delete from documents where titre = 'Document de test' and storage_path = 'test/audit-rls.pdf'`,
+      `delete from annonces where titre = 'Annonce de test'`,
+      `delete from incidents where titre = 'Incident de test'`,
+      `delete from notifications where gabarit = 'test'`,
+      `delete from journal where entite = 'test' and action = 'test'`,
+      `delete from coordonnees_paiement_versions where compte_titulaire = 'Test audit RLS'`,
+      `delete from occupants where nom = 'Occupant de test'`,
+      `delete from appels where reference = 'TEST-AUDIT-RLS'`,
+      `delete from exercices where libelle = 'Exercice test audit RLS'`,
+      `delete from organisations where slug = 'test-audit-rls'`,
+      `delete from auth.users where email is null and phone is null and created_at is null`,
+    ]) {
+      await c.query(sql);
+    }
+  }
+
   beforeAll(async () => {
     client = await connecter();
+    await purgerResidus(client);
 
     const { rows: immeuble } = await client.query<{ id: string; organisation_id: string }>(
       `select id, organisation_id from immeubles where nom = 'Mamelles Tower'`,
@@ -146,6 +174,16 @@ describe("audit RLS — toutes les tables du schéma public", () => {
     await client.query(
       `insert into membres (organisation_id, user_id, role) values ($1, $2, 'gestionnaire')`,
       [mamellesOrganisationId, userGestionnaireMamelles],
+    );
+
+    // Un lecteur du même cabinet : lecture seule, partout (20260920000000).
+    const userLecteur = await client.query<{ id: string }>(
+      `insert into auth.users (id) values (gen_random_uuid()) returning id`,
+    );
+    userLecteurMamelles = userLecteur.rows[0]!.id;
+    await client.query(
+      `insert into membres (organisation_id, user_id, role) values ($1, $2, 'lecteur')`,
+      [mamellesOrganisationId, userLecteurMamelles],
     );
 
     const userB = await client.query<{ id: string }>(
@@ -291,7 +329,7 @@ describe("audit RLS — toutes les tables du schéma public", () => {
     await client.query(`delete from immeubles where id = $1`, [autreImmeubleId]);
     await client.query(`delete from organisations where id = $1`, [autreOrganisationId]);
     await client.query(`delete from auth.users where id = any($1)`, [
-      [userGestionnaireMamelles, userGestionnaireAutreCabinet],
+      [userGestionnaireMamelles, userLecteurMamelles, userGestionnaireAutreCabinet],
     ]);
     await client.end();
   });
@@ -457,5 +495,140 @@ describe("audit RLS — toutes les tables du schéma public", () => {
         expect(resultat.rowCount).toBe(1);
       },
     );
+  });
+
+  describe("le lecteur est en lecture seule sur TOUTES les tables", () => {
+    // Refus attendu : la sécurité par ligne ou un droit de colonne. Toute autre
+    // erreur (clé dupliquée, NOT NULL, clé étrangère, déclencheur) signifie que la
+    // sécurité par ligne a LAISSÉ PASSER l'opération jusqu'à la contrainte.
+    const REFUS = /row-level security|permission denied/;
+
+    const tablesDuSchema = async () =>
+      (
+        await client.query<{ tablename: string }>(
+          `select tablename from pg_tables where schemaname = 'public' order by tablename`,
+        )
+      ).rows.map((r) => r.tablename);
+
+    it("aucune politique d'écriture n'est ouverte à tout membre : toutes exigent un rôle habilité", async () => {
+      const { rows } = await client.query<{ tablename: string; policyname: string; cmd: string; texte: string }>(
+        `select tablename, policyname, cmd, coalesce(qual, '') || ' ' || coalesce(with_check, '') as texte
+         from pg_policies where schemaname = 'public' and cmd in ('ALL', 'INSERT', 'UPDATE', 'DELETE')`,
+      );
+      expect(rows.length).toBeGreaterThan(20);
+      const ouvertes = rows.filter(
+        (p) => !/immeubles_habilites|est_gestionnaire|est_proprietaire_org/.test(p.texte),
+      );
+      expect(
+        ouvertes.map((p) => `${p.tablename}.${p.policyname} (${p.cmd})`),
+        "politiques d'écriture sans condition de rôle",
+      ).toEqual([]);
+      // Plus aucune politique « for all » fondée sur l'appartenance au cabinet.
+      expect(rows.filter((p) => /immeubles_de_lutilisateur/.test(p.texte))).toEqual([]);
+    });
+
+    it("chaque table : un lecteur ne peut ni insérer, ni modifier, ni supprimer", async () => {
+      const tables = await tablesDuSchema();
+      expect(tables.length).toBeGreaterThanOrEqual(30);
+
+      // Une colonne que « authenticated » a le droit de modifier (appels : statut),
+      // cherchée en tant que propriétaire de la base, une fois pour toutes.
+      const colonneModifiable = new Map<string, string>();
+      for (const t of tables) {
+        const { rows } = await client.query<{ column_name: string }>(
+          `select column_name from information_schema.columns
+           where table_schema = 'public' and table_name = $1
+             and has_column_privilege('authenticated', format('public.%I', $1::text), column_name, 'UPDATE')
+           order by ordinal_position limit 1`,
+          [t],
+        );
+        if (rows[0]) colonneModifiable.set(t, rows[0].column_name);
+      }
+
+      const echecs: string[] = [];
+      const refuse = (r: { erreur: string | null; lignes: number }) =>
+        r.erreur === null ? r.lignes === 0 : REFUS.test(r.erreur);
+      const decrire = (r: { erreur: string | null; lignes: number }) =>
+        r.erreur ?? `${r.lignes} ligne(s)`;
+
+      // UNE session simulée pour toutes les tables (une transaction par table
+      // dépasserait le délai sur une base distante) ; chaque essai est isolé par
+      // un point de sauvegarde, et l'ensemble est annulé à la fin.
+      await commeUtilisateur(client, userLecteurMamelles, async () => {
+        for (const t of tables) {
+          // INSERT d'une copie d'une ligne visible : la sécurité par ligne se
+          // prononce AVANT les contraintes ; « rien à copier » n'est pas concluant.
+          const insertion = await essayer(client, `insert into public."${t}" select * from public."${t}" limit 1`);
+          if (!refuse(insertion)) echecs.push(`${t} : INSERT non refusé (${decrire(insertion)})`);
+
+          const col = colonneModifiable.get(t);
+          if (col) {
+            const modification = await essayer(client, `update public."${t}" set "${col}" = "${col}"`);
+            if (!refuse(modification)) echecs.push(`${t} : UPDATE non refusé (${decrire(modification)})`);
+          }
+
+          const suppression = await essayer(client, `delete from public."${t}"`);
+          if (!refuse(suppression)) echecs.push(`${t} : DELETE non refusé (${decrire(suppression)})`);
+        }
+      });
+
+      expect(echecs, echecs.join("\n")).toEqual([]);
+    }, 120_000);
+
+    // Témoin : la règle ne se réduit pas à « personne n'écrit ». Le gestionnaire,
+    // sur les mêmes lignes, peut modifier.
+    const TABLES_TEMOINS = [
+      "lots",
+      "reglements",
+      "proprietaires",
+      "postes_charges",
+      "exercices",
+      "periodes",
+      "cles_repartition",
+      "lot_proprietaires",
+      "occupants",
+      "assemblees",
+      "resolutions",
+      "documents",
+      "annonces",
+      "incidents",
+      "paiements",
+    ];
+
+    it.each(TABLES_TEMOINS)("témoin : sur %s, le gestionnaire modifie ce que le lecteur ne peut pas", async (t) => {
+      const { rows } = await client.query<{ column_name: string }>(
+        `select column_name from information_schema.columns
+         where table_schema = 'public' and table_name = $1
+           and has_column_privilege('authenticated', format('public.%I', $1::text), column_name, 'UPDATE')
+         order by ordinal_position limit 1`,
+        [t],
+      );
+      const col = rows[0]!.column_name;
+      const sql = `update public."${t}" set "${col}" = "${col}"`;
+
+      const gestionnaire = await commeUtilisateur(client, userGestionnaireMamelles, () => client.query(sql));
+      expect(gestionnaire.rowCount, `${t} : le gestionnaire doit pouvoir modifier`).toBeGreaterThan(0);
+
+      const lecteur = await commeUtilisateur(client, userLecteurMamelles, () => client.query(sql));
+      expect(lecteur.rowCount, `${t} : le lecteur ne doit rien pouvoir modifier`).toBe(0);
+    });
+
+    it("le lecteur lit toujours : la lecture seule ne ferme pas la lecture", async () => {
+      for (const t of ["lots", "reglements", "proprietaires", "postes_charges", "exercices", "appels", "paiements", "journal"]) {
+        const { rows } = await commeUtilisateur(client, userLecteurMamelles, () =>
+          client.query<{ n: string }>(`select count(*) as n from public."${t}"`),
+        );
+        expect(Number(rows[0]!.n), `${t} : le lecteur doit pouvoir lire`).toBeGreaterThan(0);
+      }
+    });
+
+    it("le règlement de copropriété — les paramètres juridiques — n'est modifiable ni par un lecteur, ni par un autre cabinet", async () => {
+      for (const utilisateur of [userLecteurMamelles, userGestionnaireAutreCabinet]) {
+        const r = await commeUtilisateur(client, utilisateur, () =>
+          client.query(`update reglements set taux_penalite = 0.5, quorum_tantiemes_ratio = 0.01`),
+        );
+        expect(r.rowCount).toBe(0);
+      }
+    });
   });
 });

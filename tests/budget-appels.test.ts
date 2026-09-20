@@ -309,8 +309,12 @@ describe("budget et appels — obsolescence, émission refusée, verrou", () => 
       await sauvegarde(async () => {
         const [a] = await brouillons();
         await enSession(lecteur, async () => {
-          expect((await essayer(client, `update appels set statut = 'emis' where id = $1`, [a.id])).erreur).toMatch(/Émission réservée/);
+          // Refusé par la sécurité par ligne (0 ligne modifiée) ; le déclencheur
+          // d'émission le refuserait aussi, en seconde ligne.
+          const r = await essayer(client, `update appels set statut = 'emis' where id = $1`, [a.id]);
+          expect(r.erreur !== null || r.lignes === 0).toBe(true);
         });
+        expect((await appel(a.id)).statut).toBe("brouillon");
       });
     });
   });

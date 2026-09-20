@@ -483,10 +483,15 @@ describe("instantané d'un appel émis — le document ne change plus", () => {
       await dansSauvegarde(async () => {
         const b = await premierBrouillon();
         await enSession(lecteur, async () => {
+          // Refusé par la sécurité par ligne (le lecteur n'écrit nulle part) : aucune
+          // ligne modifiée. Le déclencheur d'émission le refuserait aussi (message
+          // « Émission réservée »), en seconde ligne.
           const r = await essayer(client, `update appels set statut = 'emis' where id = $1`, [b.id]);
-          expect(r.erreur).toMatch(/Émission réservée/);
+          expect(r.erreur !== null || r.lignes === 0).toBe(true);
         });
-        expect((await ligne(b.id)).statut).toBe("brouillon");
+        const apres = await ligne(b.id);
+        expect(apres.statut).toBe("brouillon");
+        expect(apres.instantane).toBeNull();
       });
     });
 

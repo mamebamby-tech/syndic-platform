@@ -177,4 +177,13 @@ une règle de calcul a le droit d'exister.
 Un copropriétaire ne voit une pénalité que lorsqu'elle est `appliquee` : une
 pénalité `calculee` est un brouillon interne.
 
+**Rôles du personnel.** Le **lecteur** est en lecture seule sur toutes les tables :
+il lit, il n'insère, ne modifie ni ne supprime rien. Seuls le **gestionnaire** et
+le **`proprietaire_org`** écrivent, décidés par `app.est_gestionnaire()` (c'est la
+définition d'« habilité », utilisée aussi par l'émission des appels et la double
+validation). La création et la suppression d'immeuble, et la gestion des membres,
+sont réservées au `proprietaire_org`. Toute politique d'écriture d'une table du
+schéma public doit contenir une condition de rôle : `tests/rls-audit.test.ts`
+échoue sinon, et balaie chaque table avec un lecteur simulé.
+
 Toute nouvelle table arrive avec sa politique dans la même migration.
