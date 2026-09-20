@@ -231,7 +231,9 @@ describe("budget et appels — obsolescence, émission refusée, verrou", () => 
         for (const statut of ["emis", "partiel", "solde"]) {
           for (const a of (await brouillons()).slice(0, 3)) {
             const r = await essayer(client, `update appels set statut = $2 where id = $1`, [a.id, statut]);
-            expect(r.erreur, statut).toMatch(/obsolète/);
+            // « partiel » et « soldé » ne s'atteignent que par des paiements : refusés dès
+            // l'émission, avant même l'obsolescence.
+            expect(r.erreur, statut).toMatch(statut === "emis" ? /obsolète/ : /statut émis/);
           }
         }
       });

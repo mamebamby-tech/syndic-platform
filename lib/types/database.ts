@@ -382,6 +382,9 @@ export interface Database {
           statut: StatutPaiement;
           recu_path: string | null;
           saisi_par: string | null;
+          saisi_par_libelle: string | null;
+          annule_paiement_id: string | null;
+          motif: string | null;
           cree_le: string;
         };
         Insert: Partial<Database["public"]["Tables"]["paiements"]["Row"]> & {
@@ -439,6 +442,20 @@ export interface Database {
       generer_appels: {
         Args: { p_periode_id: string };
         Returns: number;
+      };
+      enregistrer_paiement: {
+        Args: {
+          p_appel: string;
+          p_montant: number;
+          p_moyen: MoyenPaiement;
+          p_date: string;
+          p_reference_externe?: string | null;
+        };
+        Returns: string;
+      };
+      annuler_paiement: {
+        Args: { p_paiement: string; p_motif: string };
+        Returns: string;
       };
       changer_langue: {
         Args: { p_langue: string };

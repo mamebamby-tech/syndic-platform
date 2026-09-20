@@ -294,7 +294,15 @@
     },
     "mouvementAppel": "Appel {reference}",
     "mouvementAppelPeriode": "Appel {reference} — {periode}",
-    "mouvementPaiement": "Paiement {moyen}"
+    "mouvementPaiement": "Paiement {moyen}",
+    "mouvementPaiementAppel": "Paiement {moyen} — appel {reference}",
+    "mouvementAnnulation": "Annulation du paiement {moyen} — appel {reference}",
+    "referenceExterne": "Référence : {reference}",
+    "motifAnnulation": "Motif : {motif}",
+    "statutPaiementAnnule": "Annulé",
+    "statutAnnulation": "Annulation",
+    "appelNonCompte": "non compté dans le total",
+    "titreEnregistrement": "Enregistrer un paiement"
   },
   "Documents": {
     "mentions": {
@@ -350,6 +358,44 @@
       "whatsapp": {
         "corps": "{cabinet} : votre appel de fonds {reference} ({periode}) est disponible. Montant : {montant}, échéance le {echeance}."
       }
+    }
+  },
+  "Paiements": {
+    "appel": "Appel de fonds",
+    "optionAppel": "{reference} — reste dû {reste}",
+    "montant": "Montant reçu (FCFA)",
+    "montantAide": "Un montant entier, sans décimales. Un paiement enregistré ne se modifie plus : il s'annule par une écriture inverse.",
+    "moyen": "Moyen de règlement",
+    "date": "Date du paiement",
+    "reference": "Référence du règlement",
+    "referenceAide": "Facultative : numéro de virement, de transaction Wave ou Orange Money, reçu.",
+    "enregistrer": "Enregistrer le paiement",
+    "enregistre": "Paiement enregistré.",
+    "aucunAppelPayable": "Aucun appel émis n'attend de paiement pour ce propriétaire.",
+    "annulation": {
+      "ouvrir": "Annuler ce paiement",
+      "motif": "Motif de l'annulation",
+      "explication": "Le paiement n'est pas modifié : une écriture inverse est ajoutée au relevé, avec ce motif, et tracée au journal.",
+      "confirmer": "Annuler le paiement",
+      "renoncer": "Renoncer"
+    },
+    "erreurs": {
+      "appel_requis": "Choisissez l'appel.",
+      "montant_invalide": "Saisissez un montant entier en FCFA, supérieur à zéro.",
+      "moyen_invalide": "Choisissez un moyen de règlement.",
+      "date_invalide": "Saisissez une date valide.",
+      "date_future": "La date du paiement ne peut pas être dans le futur.",
+      "reference_trop_longue": "La référence est trop longue (120 caractères au plus).",
+      "paiement_requis": "Paiement introuvable.",
+      "motif_requis": "Le motif de l'annulation est obligatoire.",
+      "motif_trop_long": "Le motif est trop long (500 caractères au plus).",
+      "appel_non_payable": "Cet appel n'est pas émis, ou a été annulé : aucun paiement ne peut y être enregistré.",
+      "depasse_reste_du": "Le paiement dépasse le reste dû de cet appel. Un trop-perçu n'est pas pris en charge : enregistrez au plus le reste dû.",
+      "deja_annule": "Ce paiement est déjà annulé.",
+      "non_annulable": "Ce paiement ne peut pas être annulé.",
+      "destinataire_different": "Le paiement doit être au nom du destinataire de l'appel.",
+      "acces_refuse": "Seuls le gestionnaire et le proprietaire_org peuvent enregistrer ou annuler un paiement.",
+      "enregistrement_impossible": "L'opération a échoué. Rien n'a été enregistré : réessayez."
     }
   }
 }

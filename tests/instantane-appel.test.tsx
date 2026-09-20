@@ -403,14 +403,18 @@ describe("instantané d'un appel émis — le document ne change plus", () => {
       });
     });
 
-    it("seul le statut évolue : émis → partiel → soldé, sans toucher à l'instantané", async () => {
+    it("seul le statut évolue, avec les paiements : émis → partiel → soldé, sans toucher à l'instantané", async () => {
       await dansSauvegarde(async () => {
         const b = await premierBrouillon();
         await emettre(b.id);
         const instantane = (await ligne(b.id)).instantane;
-        for (const statut of ["partiel", "solde"]) {
-          expect((await essayer(client, `update appels set statut = $2 where id = $1`, [b.id, statut])).erreur, statut).toBeNull();
-        }
+        const moitie = (await client.query(`select round(montant_total / 2, 2) as m from appels where id = $1`, [b.id])).rows[0].m;
+        await client.query(`select public.enregistrer_paiement($1, $2, 'virement', current_date)`, [b.id, moitie]);
+        expect((await ligne(b.id)).statut).toBe("partiel");
+        await client.query(`select public.enregistrer_paiement($1, $2 , 'virement', current_date)`, [
+          b.id,
+          (await client.query(`select montant_total - $2::numeric as reste from appels where id = $1`, [b.id, moitie])).rows[0].reste,
+        ]);
         const fin = await ligne(b.id);
         expect(fin.statut).toBe("solde");
         expect(fin.instantane).toEqual(instantane);
@@ -422,7 +426,8 @@ describe("instantané d'un appel émis — le document ne change plus", () => {
         const b = await premierBrouillon();
         await emettre(b.id);
         await client.query(`update immeubles set compte_numero = null where id = $1`, [immeubleId]);
-        expect((await essayer(client, `update appels set statut = 'partiel' where id = $1`, [b.id])).erreur).toBeNull();
+        expect((await essayer(client, `select public.enregistrer_paiement($1, 1, 'especes', current_date)`, [b.id])).erreur).toBeNull();
+        expect((await ligne(b.id)).statut).toBe("partiel");
       });
     });
 

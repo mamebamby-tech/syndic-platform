@@ -74,7 +74,6 @@ describe("audit RLS — toutes les tables du schéma public", () => {
   // téléphone, ni date de création (seul l'identifiant est inséré).
   async function purgerResidus(c: Client) {
     for (const sql of [
-      `delete from paiements where appel_id in (select id from appels where reference = 'TEST-AUDIT-RLS')`,
       `delete from assemblees where id in (select assemblee_id from resolutions where titre = 'Résolution de test')`,
       `delete from documents where titre = 'Document de test' and storage_path = 'test/audit-rls.pdf'`,
       `delete from annonces where titre = 'Annonce de test'`,
@@ -84,7 +83,6 @@ describe("audit RLS — toutes les tables du schéma public", () => {
       `delete from coordonnees_paiement_versions where compte_titulaire = 'Test audit RLS'`,
       `delete from occupants where nom = 'Occupant de test'`,
       `delete from proprietaires where nom = 'Propriétaire test audit notes'`,
-      `delete from appels where reference = 'TEST-AUDIT-RLS'`,
       `delete from exercices where libelle = 'Exercice test audit RLS'`,
       `delete from organisations where slug = 'test-audit-rls'`,
       `delete from auth.users where email is null and phone is null and created_at is null`,
@@ -218,12 +216,6 @@ describe("audit RLS — toutes les tables du schéma public", () => {
        values ($1, 0, 0, 0, 0)`,
       [appelId],
     );
-    const paiement = await client.query<{ id: string }>(
-      `insert into paiements (appel_id, proprietaire_id, montant, moyen) values ($1, $2, 0, 'virement') returning id`,
-      [appelId, unProprietaireId],
-    );
-    paiementId = paiement.rows[0]!.id;
-
     const assemblee = await client.query<{ id: string }>(
       `insert into assemblees (immeuble_id, date_seance) values ($1, now()) returning id`,
       [mamellesImmeubleId],
@@ -311,6 +303,27 @@ describe("audit RLS — toutes les tables du schéma public", () => {
     );
     accesPersonneId = accesPersonne.rows[0]!.id;
 
+    // Un paiement exige un appel ÉMIS, de montant positif (20260920020000), et se saisit par
+    // la fonction de la base. Il vit sur un appel à part, dans sa propre période : l'appel
+    // ci-dessus reste un brouillon (les tests qui modifient ses lignes en ont besoin), et
+    // l'émission fige l'appel qu'elle touche. Tout part avec l'exercice, en cascade.
+    const periodePaiement = await client.query<{ id: string }>(
+      `insert into periodes (exercice_id, libelle, date_debut, date_fin, date_echeance)
+       values ($1, 'Période test audit RLS (paiement)', '2098-04-01', '2098-06-30', '2098-04-01') returning id`,
+      [exerciceAuditId],
+    );
+    const appelPaiement = await client.query<{ id: string }>(
+      `insert into appels (periode_id, proprietaire_id, reference, date_echeance, montant_total)
+       values ($1, $2, 'TEST-AUDIT-RLS-PAIEMENT', '2098-04-01', 1000) returning id`,
+      [periodePaiement.rows[0]!.id, unProprietaireId],
+    );
+    await client.query(`update appels set statut = 'emis' where id = $1`, [appelPaiement.rows[0]!.id]);
+    const paiement = await client.query<{ id: string }>(
+      `select public.enregistrer_paiement($1, 1, 'virement', current_date) as id`,
+      [appelPaiement.rows[0]!.id],
+    );
+    paiementId = paiement.rows[0]!.id;
+
     void appelId;
     void paiementId;
     void assembleeId;
@@ -326,10 +339,9 @@ describe("audit RLS — toutes les tables du schéma public", () => {
   });
 
   afterAll(async () => {
-    // paiements.appel_id est "on delete set null", pas cascade : à
-    // supprimer explicitement avant l'appel, sinon la ligne reste orpheline.
-    await client.query(`delete from paiements where id = $1`, [paiementId]);
-    await client.query(`delete from appels where id = $1`, [appelId]);
+    // Un appel émis et ses paiements ne se suppriment pas directement (immuables) : ils
+    // partent avec leur exercice, par la suppression en cascade (exercice → période →
+    // appel → paiements), seule exception prévue.
     await client.query(`delete from exercices where id = $1`, [exerciceAuditId]);
     await client.query(`delete from assemblees where id = $1`, [assembleeId]);
     await client.query(`delete from documents where id = $1`, [documentId]);
@@ -607,7 +619,6 @@ describe("audit RLS — toutes les tables du schéma public", () => {
       "documents",
       "annonces",
       "incidents",
-      "paiements",
     ];
 
     it.each(TABLES_TEMOINS)("témoin : sur %s, le gestionnaire modifie ce que le lecteur ne peut pas", async (t) => {
@@ -626,6 +637,18 @@ describe("audit RLS — toutes les tables du schéma public", () => {
 
       const lecteur = await commeUtilisateur(client, userLecteurMamelles, () => client.query(sql));
       expect(lecteur.rowCount, `${t} : le lecteur ne doit rien pouvoir modifier`).toBe(0);
+    });
+
+    it("paiements : personne n'écrit directement, gestionnaire compris — seules les fonctions de la base écrivent", async () => {
+      for (const utilisateur of [userGestionnaireMamelles, userLecteurMamelles]) {
+        for (const sql of [
+          `insert into public.paiements (appel_id, proprietaire_id, montant, moyen) select appel_id, proprietaire_id, 1, 'virement' from public.paiements limit 1`,
+          `update public.paiements set montant = montant`,
+          `delete from public.paiements`,
+        ]) {
+          await expect(commeUtilisateur(client, utilisateur, () => client.query(sql)), sql).rejects.toThrow(/permission denied/);
+        }
+      }
     });
 
     it("le lecteur lit toujours : la lecture seule ne ferme pas la lecture", async () => {

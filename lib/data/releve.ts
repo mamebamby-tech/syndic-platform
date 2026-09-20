@@ -1,11 +1,15 @@
 import "server-only";
 import { creerClientServeur } from "@/lib/supabase/server";
-import type {
-  MoyenPaiement,
-  StatutAppel,
-  StatutPaiement,
-  TypePersonne,
-} from "@/lib/types/database";
+import type { TypePersonne } from "@/lib/types/database";
+import {
+  appelsPayables,
+  calculerTotaux,
+  composerMouvements,
+  type AppelPayable,
+  type MouvementReleve,
+} from "@/lib/releve/calcul";
+
+export type { AppelPayable, MouvementReleve };
 
 export interface MembreGroupe {
   id: string;
@@ -19,31 +23,10 @@ export interface LotReleve {
   quotePart: number;
 }
 
-// Un mouvement porte des codes et des données, jamais un libellé rédigé :
-// c'est l'écran qui le met en mots, dans la langue de la personne
-// (messages/*.json, `Releve.mouvement*`, `StatutAppelReleve.*`, etc.).
-export type MouvementReleve =
-  | {
-      type: "appel";
-      date: string;
-      reference: string;
-      periodeLibelle: string | null;
-      montant: number;
-      sens: "du";
-      statut: StatutAppel;
-    }
-  | {
-      type: "paiement";
-      date: string;
-      moyen: MoyenPaiement;
-      montant: number;
-      sens: "paye";
-      statut: StatutPaiement;
-    };
-
 export interface ReleveProprietaire {
   proprietaireId: string;
   immeubleId: string;
+  organisationId: string;
   nom: string;
   type: TypePersonne;
   email: string | null;
@@ -56,6 +39,8 @@ export interface ReleveProprietaire {
   totalPaye: number;
   solde: number;
   mouvements: MouvementReleve[];
+  // Les appels sur lesquels un paiement peut encore être enregistré.
+  appelsPayables: AppelPayable[];
 }
 
 export type ResultatReleve =
@@ -106,6 +91,7 @@ export async function chargerReleve(proprietaireId: string): Promise<ResultatRel
     { data: totalImmeuble, error: erreurTotalImmeuble },
     { data: appels, error: erreurAppels },
     { data: paiements, error: erreurPaiements },
+    { data: immeuble, error: erreurImmeuble },
   ] = await Promise.all([
     supabase
       .from("lot_proprietaires")
@@ -123,9 +109,10 @@ export async function chargerReleve(proprietaireId: string): Promise<ResultatRel
       .order("date_echeance", { ascending: false }),
     supabase
       .from("paiements")
-      .select("id, montant, statut, date_paiement, moyen")
+      .select("id, appel_id, montant, statut, date_paiement, moyen, reference_externe, annule_paiement_id, motif")
       .in("proprietaire_id", idsFacturation)
       .order("date_paiement", { ascending: false }),
+    supabase.from("immeubles").select("organisation_id").eq("id", proprietaire.immeuble_id).single(),
   ]);
 
   if (erreurRattachements) {
@@ -139,6 +126,9 @@ export async function chargerReleve(proprietaireId: string): Promise<ResultatRel
   }
   if (erreurPaiements) {
     throw new Error(`Lecture des paiements impossible : ${erreurPaiements.message}`);
+  }
+  if (erreurImmeuble || !immeuble) {
+    throw new Error(`Lecture de l'immeuble impossible : ${erreurImmeuble?.message ?? "introuvable"}`);
   }
 
   const totalTantiemesImmeuble = (totalImmeuble ?? []).reduce(
@@ -170,40 +160,19 @@ export async function chargerReleve(proprietaireId: string): Promise<ResultatRel
   }
   const libellePeriodeParId = new Map((periodes ?? []).map((periode) => [periode.id, periode.libelle]));
 
-  const totalAppele = (appels ?? []).reduce((total, appel) => total + appel.montant_total, 0);
-  const totalPaye = (paiements ?? [])
-    .filter((paiement) => paiement.statut === "confirme")
-    .reduce((total, paiement) => total + paiement.montant, 0);
-
-  const mouvements: MouvementReleve[] = [
-    ...(appels ?? []).map(
-      (appel): MouvementReleve => ({
-        type: "appel",
-        date: appel.date_echeance,
-        reference: appel.reference,
-        periodeLibelle: libellePeriodeParId.get(appel.periode_id) ?? null,
-        montant: appel.montant_total,
-        sens: "du",
-        statut: appel.statut,
-      }),
-    ),
-    ...(paiements ?? []).map(
-      (paiement): MouvementReleve => ({
-        type: "paiement",
-        date: paiement.date_paiement,
-        moyen: paiement.moyen,
-        montant: paiement.montant,
-        sens: "paye",
-        statut: paiement.statut,
-      }),
-    ),
-  ].sort((a, b) => (a.date < b.date ? 1 : -1));
+  // Le total appelé ne compte que les appels émis, partiellement payés ou soldés :
+  // ni les brouillons, ni les appels annulés (annuler puis réémettre ne double rien).
+  const appelsBruts = appels ?? [];
+  const paiementsBruts = paiements ?? [];
+  const { totalAppele, totalPaye, solde } = calculerTotaux(appelsBruts, paiementsBruts);
+  const mouvements = composerMouvements(appelsBruts, paiementsBruts, libellePeriodeParId);
 
   return {
     type: "releve",
     releve: {
       proprietaireId: proprietaire.id,
       immeubleId: proprietaire.immeuble_id,
+      organisationId: immeuble.organisation_id,
       nom: proprietaire.nom,
       type: proprietaire.type,
       email: proprietaire.email,
@@ -214,8 +183,9 @@ export async function chargerReleve(proprietaireId: string): Promise<ResultatRel
       totalTantiemesImmeuble,
       totalAppele,
       totalPaye,
-      solde: totalAppele - totalPaye,
+      solde,
       mouvements,
+      appelsPayables: appelsPayables(appelsBruts, paiementsBruts),
     },
   };
 }

@@ -2,6 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { getValeurs } from "@/lib/i18n/valeurs-serveur";
 import { chargerReleve } from "@/lib/data/releve";
+import { peutParametrer, roleSurOrganisation } from "@/lib/data/parametres-immeuble";
+import { AnnulationPaiement } from "@/components/releve/annulation-paiement";
+import { FormulaireEnregistrementPaiement } from "@/components/releve/formulaire-paiement";
 
 export default async function PageReleveProprietaire({
   params,
@@ -26,6 +29,12 @@ export default async function PageReleveProprietaire({
   const tMoyen = await getTranslations("MoyenPaiement");
   const format = await getFormatter();
   const valeurs = await getValeurs();
+
+  // Enregistrer ou annuler un paiement : gestionnaire et proprietaire_org. La base
+  // le refuse de toute façon à un lecteur ; ceci lui évite un formulaire qui ne
+  // peut pas aboutir.
+  const peutSaisir = peutParametrer(await roleSurOrganisation(releve.organisationId));
+  const aujourdhui = new Date().toISOString().slice(0, 10);
 
   return (
     <div>
@@ -102,6 +111,20 @@ export default async function PageReleveProprietaire({
         </div>
       </section>
 
+      {peutSaisir && (
+        <section className="mb-6">
+          <h2 className="mb-3 font-serif text-lg text-marque">{t("titreEnregistrement")}</h2>
+          <div className="rounded-card border border-filet bg-surface p-4">
+            <FormulaireEnregistrementPaiement
+              immeubleId={immeubleId}
+              proprietaireId={releve.proprietaireId}
+              appels={releve.appelsPayables}
+              aujourdhui={aujourdhui}
+            />
+          </div>
+        </section>
+      )}
+
       <section>
         <h2 className="mb-3 font-serif text-lg text-marque">{t("titreMouvements")}</h2>
         {releve.mouvements.length === 0 ? (
@@ -126,27 +149,66 @@ export default async function PageReleveProprietaire({
                       {valeurs.dateCourte(mouvement.date)}
                     </td>
                     <td className="px-4 py-3 text-encre">
-                      {mouvement.type === "appel"
-                        ? mouvement.periodeLibelle
+                      {mouvement.type === "appel" ? (
+                        mouvement.periodeLibelle
                           ? t("mouvementAppelPeriode", {
                               reference: mouvement.reference,
                               periode: mouvement.periodeLibelle,
                             })
                           : t("mouvementAppel", { reference: mouvement.reference })
-                        : t("mouvementPaiement", { moyen: tMoyen(mouvement.moyen) })}
+                      ) : (
+                        <>
+                          {mouvement.appelReference
+                            ? t(mouvement.annulation ? "mouvementAnnulation" : "mouvementPaiementAppel", {
+                                moyen: tMoyen(mouvement.moyen),
+                                reference: mouvement.appelReference,
+                              })
+                            : t("mouvementPaiement", { moyen: tMoyen(mouvement.moyen) })}
+                          {mouvement.referenceExterne && (
+                            <span className="block text-xs text-encre-3">
+                              {t("referenceExterne", { reference: mouvement.referenceExterne })}
+                            </span>
+                          )}
+                          {mouvement.motif && (
+                            <span className="block text-xs text-encre-3">
+                              {t("motifAnnulation", { motif: mouvement.motif })}
+                            </span>
+                          )}
+                          {peutSaisir && mouvement.annulable && (
+                            <AnnulationPaiement
+                              immeubleId={immeubleId}
+                              proprietaireId={releve.proprietaireId}
+                              paiementId={mouvement.id}
+                            />
+                          )}
+                        </>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-encre-2">
                       {mouvement.type === "appel"
                         ? tStatutAppel(mouvement.statut)
-                        : tStatutPaiement(mouvement.statut)}
+                        : mouvement.annulation
+                          ? t("statutAnnulation")
+                          : mouvement.dejaAnnule
+                            ? t("statutPaiementAnnule")
+                            : tStatutPaiement(mouvement.statut)}
+                      {mouvement.type === "appel" && !mouvement.compte && (
+                        <span className="block text-xs text-encre-3">{t("appelNonCompte")}</span>
+                      )}
                     </td>
                     <td
                       className={`px-4 py-3 text-right tabular-nums ${
-                        mouvement.sens === "du" ? "text-encre" : "text-action"
+                        mouvement.type === "appel"
+                          ? mouvement.compte
+                            ? "text-encre"
+                            : "text-encre-3 line-through"
+                          : mouvement.montant > 0
+                            ? "text-action"
+                            : "text-encre"
                       }`}
                     >
-                      {mouvement.sens === "du" ? "+" : "−"}
-                      {valeurs.montant(mouvement.montant)}
+                      {mouvement.type === "appel" ? "+" : mouvement.montant > 0 ? "−" : "+"}
+                      {valeurs.montant(Math.abs(mouvement.montant))}
                     </td>
                   </tr>
                 ))}

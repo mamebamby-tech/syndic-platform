@@ -505,7 +505,7 @@ describe("intégration — base Mamelles Tower", () => {
             await client.query("savepoint s");
             await expect(
               client.query(`update appels set statut = $2 where id = $1`, [a[0]!.id, statut]),
-            ).rejects.toThrow(/coordonnées bancaires/);
+            ).rejects.toThrow(/s'émet au statut émis/);
             await client.query("rollback to savepoint s");
           }
 
