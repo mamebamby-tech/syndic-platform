@@ -48,6 +48,32 @@ a d'abord été appliquée et vérifiée sur syndic-dev (d'abord en transaction
 annulée), puis appliquée sur la base réelle **en la désignant explicitement**
 — jamais en changeant `.env.local` pour l'occasion.
 
+### Où en est chaque base : le suivi des migrations
+
+Chaque base tient l'historique de ses migrations (`supabase_migrations.schema_migrations`,
+la table de la CLI Supabase : `supabase db push` la lit et l'écrit aussi).
+
+```bash
+npm run db:etat                          # écart dépôt ↔ syndic-dev, lecture seule
+npm run db:etat -- --cible=reel          # écart dépôt ↔ base réelle, lecture seule
+npm run db:appliquer -- --essai          # ce qui serait appliqué, sans rien exécuter
+npm run db:appliquer                     # applique le manquant sur syndic-dev, dans l'ordre
+npm run db:adopter                       # base sans historique : enregistre l'existant
+```
+
+- `db:etat` ouvre une transaction `read only` : la base refuse elle-même toute écriture.
+  Il est sans risque sur la base réelle.
+- `--cible=reel` lit `.env.reel`, et **adopter** ou **appliquer** y exigent un terminal
+  et la saisie d'une phrase qui nomme l'hôte et le nombre de migrations. Aucune option
+  ne passe outre.
+- Chaque migration est appliquée avec son enregistrement dans **une seule transaction** ;
+  la première qui échoue arrête tout, les suivantes ne sont pas tentées.
+- Ne modifiez jamais une migration appliquée : l'écart la signale (« modifiée après son
+  application »). Écrivez-en une nouvelle.
+- Une base sans historique (les deux existantes, à la mise en place du suivi) est
+  d'abord **adoptée** : l'état est déduit de traces durables (`lib/migrations/marqueurs.ts`),
+  sans rejouer aucun SQL. Une migration nouvelle n'a pas besoin de marqueur.
+
 ### Les tests ne tournent que sur le jeu fictif
 
 La suite écrit dans la base (elle sème des lignes, génère des appels, modifie
@@ -112,6 +138,9 @@ supabase db push
 psql "$DATABASE_URL" -f supabase/seed/seed.sql
 ```
 
+(Sur un projet neuf seulement. Ensuite, `npm run db:etat` et `npm run db:appliquer`
+suivent et appliquent les migrations : voir « Où en est chaque base ».)
+
 `DATABASE_URL` est celle de **syndic-dev**. Le seed est le jeu **fictif** : il ne
 se charge jamais sur la base réelle, dont le registre vient de `donnees-privees/`.
 
@@ -146,9 +175,19 @@ npm run dev:lien mamebamby+dev2@gmail.com
 Il refuse de s'exécuter si la base cible n'est pas syndic-dev (même garde-fou que
 les tests : voir « Environnements »), ne crée jamais de compte, et le lien passe par
 `/auth/confirmation`, une route qui n'existe pas en production. `npm run dev` doit
-tourner. Le lien attend quelques secondes avant de rediriger : Supabase émet le
-jeton avec l'horloge de son service d'authentification, et PostgREST le refuse
-(« JWT issued at future ») s'il retarde, même d'une seconde.
+tourner.
+
+### Décalage d'horloge (« JWT issued at future »)
+
+Supabase émet le jeton de session avec l'horloge de son service d'authentification,
+et PostgREST le refuse (401, `PGRST303`) si la sienne retarde, même d'une seconde.
+Cela touche la connexion normale par code comme le lien de développement, et chaque
+rafraîchissement de jeton : l'application enchaîne une requête avec le jeton neuf.
+Le client serveur (`lib/supabase/server.ts`, `lib/supabase/proxy.ts`) rejoue donc la
+requête, au plus quatre fois, en 3,75 s au total (`lib/supabase/reprise.ts`). Le
+rejeu est sans risque : la requête est refusée avant toute exécution. Si le décalage
+persiste, l'erreur remonte. Chaque reprise écrit `[horloge]` dans les journaux du
+serveur : leur fréquence dit si le décalage est occasionnel ou permanent.
 
 Sur `http://localhost:3000`, la connexion redirige vers `/login` tant
 qu'aucune session n'est ouverte. Après une première connexion par code à
