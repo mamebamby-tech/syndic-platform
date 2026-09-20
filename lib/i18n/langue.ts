@@ -9,7 +9,8 @@ import { LANGUE_PAR_DEFAUT, normaliserLangue, type Langue } from "@/lib/i18n/con
 //   1. le personnel d'un cabinet : `membres.langue` ;
 //   2. le copropriétaire : `proprietaires.langue`, via `acces_personnes`.
 // Elle existe parce qu'un copropriétaire n'a aucune politique de lecture sur
-// `proprietaires` — en donner une exposerait aussi la note interne du syndic.
+// `proprietaires` — en donner une exposerait toute la ligne de la table (la note interne du syndic vit désormais dans
+// `proprietaires_notes`, réservée aux habilités, mais l'e-mail et le téléphone y sont encore).
 //
 // Personne connectée (page de connexion), rien de rattaché au compte, ou
 // lecture impossible : français.

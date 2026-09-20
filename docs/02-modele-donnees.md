@@ -46,6 +46,16 @@ comptes, sans toucher au code.
 Ne déduis jamais un regroupement d'un contact commun : deux adresses du registre
 réel sont partagées par des personnes sans lien.
 
+### La note interne d'un propriétaire est une table à part
+
+`proprietaires_notes` (une ligne par propriétaire, `note` non vide) porte la note
+interne du syndic. Elle n'est **pas** une colonne de `proprietaires`, parce que la
+sécurité par ligne filtre des lignes, pas des colonnes : tout le personnel du
+cabinet lit `proprietaires`, lecteurs compris. Sa propre politique la réserve au
+gestionnaire et au `proprietaire_org` (`app.immeubles_habilites()`), en lecture
+comme en écriture. Une clé étrangère composite `(proprietaire_id, immeuble_id)`
+garantit que la note porte l'immeuble de son propriétaire. Décision 50.
+
 ### La référence d'un appel : courte, dictable, paramétrée par immeuble
 
 `MT-2026T4-007` : code de l'immeuble (`immeubles.code_reference`), année et

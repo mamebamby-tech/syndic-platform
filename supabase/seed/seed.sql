@@ -136,9 +136,9 @@ insert into proprietaires (immeuble_id, nom, type, email, telephone, pays, est_g
 select i.id, 'SCI ALIZE (groupe)', 'morale', 'sci.alize@example.com', '+221700000001', 'SN', true
 from immeubles i where i.nom = 'Mamelles Tower';
 
-insert into proprietaires (immeuble_id, nom, type, email, telephone, pays, note)
-select i.id, v.nom, v.typ::type_personne, v.mail, v.tel, v.pays, v.note
-from immeubles i, (values
+-- La note interne d'un propriétaire vit dans proprietaires_notes (lisible par les
+-- seuls habilités) : une seule instruction insère les propriétaires puis leurs notes.
+with v(nom, typ, mail, tel, pays, note) as (values
   ('SCI ALIZE', 'morale', 'sci.alize@example.com', '+221700000001', 'SN', null),
   ('Awa TOURE', 'physique', 'awa.toure@example.com', '+221700000004', 'SN', null),
   ('NDIAYE HOLDING', 'morale', 'ndiaye.holding@example.com', '+221700000002', 'SN', null),
@@ -160,8 +160,18 @@ from immeubles i, (values
   ('Ousmane KANE (remplacement A. SECK)', 'physique', 'kaneousmane441', '+221700000007', 'SN', 'Adresse électronique invalide au registre : kaneousmane441'),
   ('Wei CHEN', 'physique', 'bureau.commun@example.org', '+221700000009', 'SN', null),
   ('Jun ZHAO', 'physique', 'bureau.commun@example.org', '+221700000010', 'SN', null)
-) as v(nom, typ, mail, tel, pays, note)
-where i.nom = 'Mamelles Tower';
+),
+ins as (
+  insert into proprietaires (immeuble_id, nom, type, email, telephone, pays)
+  select i.id, v.nom, v.typ::type_personne, v.mail, v.tel, v.pays
+  from immeubles i, v
+  where i.nom = 'Mamelles Tower'
+  returning id, immeuble_id, nom
+)
+insert into proprietaires_notes (proprietaire_id, immeuble_id, note)
+select ins.id, ins.immeuble_id, v.note
+from ins join v on v.nom = ins.nom
+where v.note is not null;
 
 update proprietaires p set groupe_id = g.id
 from proprietaires g

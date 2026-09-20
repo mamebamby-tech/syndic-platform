@@ -46,6 +46,7 @@ describe("audit RLS — toutes les tables du schéma public", () => {
   let unPosteChargeId: string;
   let exerciceAuditId: string;
   let versionPaiementId: string;
+  let proprietaireNoteId: string;
 
   let userGestionnaireMamelles: string;
   let userLecteurMamelles: string;
@@ -82,6 +83,7 @@ describe("audit RLS — toutes les tables du schéma public", () => {
       `delete from journal where entite = 'test' and action = 'test'`,
       `delete from coordonnees_paiement_versions where compte_titulaire = 'Test audit RLS'`,
       `delete from occupants where nom = 'Occupant de test'`,
+      `delete from proprietaires where nom = 'Propriétaire test audit notes'`,
       `delete from appels where reference = 'TEST-AUDIT-RLS'`,
       `delete from exercices where libelle = 'Exercice test audit RLS'`,
       `delete from organisations where slug = 'test-audit-rls'`,
@@ -286,6 +288,17 @@ describe("audit RLS — toutes les tables du schéma public", () => {
     );
     versionPaiementId = versionPaiement.rows[0]!.id;
 
+    // Un propriétaire DÉDIÉ pour la note : celles de la base de dev ne sont jamais touchées.
+    const proprietaireNote = await client.query<{ id: string }>(
+      `insert into proprietaires (immeuble_id, nom) values ($1, 'Propriétaire test audit notes') returning id`,
+      [mamellesImmeubleId],
+    );
+    proprietaireNoteId = proprietaireNote.rows[0]!.id;
+    await client.query(
+      `insert into proprietaires_notes (proprietaire_id, immeuble_id, note) values ($1, $2, 'Note de test')`,
+      [proprietaireNoteId, mamellesImmeubleId],
+    );
+
     const occupant = await client.query<{ id: string }>(
       `insert into occupants (lot_id, nom) values ($1, 'Occupant de test') returning id`,
       [unLotId],
@@ -307,6 +320,7 @@ describe("audit RLS — toutes les tables du schéma public", () => {
     void notificationId;
     void journalId;
     void versionPaiementId;
+    void proprietaireNoteId;
     void occupantId;
     void accesPersonneId;
   });
@@ -324,6 +338,7 @@ describe("audit RLS — toutes les tables du schéma public", () => {
     await client.query(`delete from notifications where id = $1`, [notificationId]);
     await client.query(`delete from journal where id = $1`, [journalId]);
     await client.query(`delete from coordonnees_paiement_versions where id = $1`, [versionPaiementId]);
+    await client.query(`delete from proprietaires where id = $1`, [proprietaireNoteId]);
     await client.query(`delete from occupants where id = $1`, [occupantId]);
     await client.query(`delete from acces_personnes where id = $1`, [accesPersonneId]);
     await client.query(`delete from immeubles where id = $1`, [autreImmeubleId]);

@@ -140,7 +140,6 @@ export interface Database {
           pays: string | null;
           groupe_id: string | null;
           est_groupe: boolean;
-          note: string | null;
           langue: string;
           cree_le: string;
         };
@@ -149,6 +148,17 @@ export interface Database {
           nom: string;
         };
         Update: Partial<Database["public"]["Tables"]["proprietaires"]["Row"]>;
+        Relationships: [];
+      };
+      // Note interne du syndic : lisible et modifiable par les seuls habilités.
+      proprietaires_notes: {
+        Row: {
+          proprietaire_id: string;
+          immeuble_id: string;
+          note: string;
+        };
+        Insert: Database["public"]["Tables"]["proprietaires_notes"]["Row"];
+        Update: Partial<Database["public"]["Tables"]["proprietaires_notes"]["Row"]>;
         Relationships: [];
       };
       lots: {
