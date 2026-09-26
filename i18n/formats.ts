@@ -29,6 +29,13 @@ export const formats = {
       style: "percent",
       maximumFractionDigits: 0,
     },
+    // Taux fixé par le règlement (intérêts de retard) : imprimé tel quel,
+    // sans arrondi à l'entier (1,5 % reste 1,5 %).
+    tauxReglement: {
+      style: "percent",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    },
   },
   dateTime: {
     // Toute date affichée aujourd'hui est à portée juridique ou financière

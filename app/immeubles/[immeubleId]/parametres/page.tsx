@@ -13,6 +13,8 @@ import { PanneauModificationEnAttente } from "@/components/parametres/panneau-mo
 import { getValeurs } from "@/lib/i18n/valeurs-serveur";
 import { codePeriode } from "@/lib/parametres/reference";
 import { FormulaireParametres } from "@/components/parametres/formulaire-parametres";
+import { FormulaireGestionnaire } from "@/components/parametres/formulaire-gestionnaire";
+import { chargerGestionnaire } from "@/lib/data/parametres-immeuble";
 
 const DECISIONS = ["confirmee", "refusee", "auteur", "plus_en_attente", "non_autorise", "erreur"] as const;
 
@@ -43,10 +45,11 @@ export default async function PageParametres({
   }
 
   const valeurs = await getValeurs();
-  const [version, habilites, utilisateurId] = await Promise.all([
+  const [version, habilites, utilisateurId, gestionnaire] = await Promise.all([
     chargerVersionEnAttente(immeubleId),
     compterMembresHabilites(parametres.organisationId),
     utilisateurCourantId(),
+    chargerGestionnaire(immeubleId),
   ]);
   const situation = version ? situationDeLaVersion(version.proposePar, utilisateurId, habilites) : null;
   const decisionConnue = DECISIONS.find((d) => d === decision);
@@ -108,6 +111,8 @@ export default async function PageParametres({
           parametres.compteModifieLe ? valeurs.dateJuridique(parametres.compteModifieLe) : null
         }
       />
+
+      <FormulaireGestionnaire immeubleId={immeubleId} nom={gestionnaire.nom} email={gestionnaire.email} />
     </div>
   );
 }

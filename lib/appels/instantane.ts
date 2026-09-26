@@ -10,8 +10,31 @@ import type { MoyenPaiement } from "@/lib/types/database";
 // jamais sur les données courantes — ce serait afficher, pour un document déjà
 // envoyé, autre chose que ce qui a été envoyé.
 
+// Ce que la version 2 ajoute (20260926010000_document_et_envoi_appels.sql) :
+// tout ce que le PDF imprime. Absent d'un instantané version 1 — le PDF ne se
+// rend alors pas, plutôt que de compléter avec des données courantes.
+export interface ComplementPdf {
+  destinataireEmail: string | null;
+  immeubleCodeReference: string | null;
+  immeubleAdresse: string | null;
+  immeubleVille: string | null;
+  gestionnaire: { nom: string | null; email: string | null };
+  lots: { numero: number; designation: string; niveau: string | null; tantiemes: number }[];
+  // Dans l'ordre des lignes : clé, base totale de la clé et montant du poste.
+  lignes: { cleLibelle: string; baseTotale: number; montantPoste: number }[];
+  retard: {
+    tauxPenalite: number;
+    penalitePar: string;
+    requiertMiseEnDemeure: boolean;
+    delaiPaiementJours: number;
+    article: string | null;
+  } | null;
+}
+
 export interface InstantaneAppel {
-  version: 1;
+  version: 1 | 2;
+  // Présent pour la version 2 seulement.
+  complement: ComplementPdf | null;
   emisLe: string;
   reference: string;
   numero: number | null;
@@ -65,7 +88,9 @@ const nombre = (valeur: unknown, chemin: string): number => {
 
 export function lireInstantane(brut: unknown): InstantaneAppel {
   const racine = objet(brut, "instantané");
-  if (racine.version !== 1) throw new InstantaneIllisible(`version ${String(racine.version)} inconnue`);
+  if (racine.version !== 1 && racine.version !== 2) {
+    throw new InstantaneIllisible(`version ${String(racine.version)} inconnue`);
+  }
 
   const organisation = objet(racine.organisation, "organisation");
   const reglement = objet(racine.reglement, "règlement");
@@ -74,7 +99,8 @@ export function lireInstantane(brut: unknown): InstantaneAppel {
   if (!Array.isArray(lignes)) throw new InstantaneIllisible("lignes absentes");
 
   return {
-    version: 1,
+    version: racine.version,
+    complement: racine.version === 2 ? lireComplement(racine, lignes) : null,
     emisLe: texte(racine.emis_le, "emis_le"),
     reference: texte(racine.reference, "référence"),
     numero: typeof racine.numero === "number" ? racine.numero : null,
@@ -124,6 +150,45 @@ export function lireInstantane(brut: unknown): InstantaneAppel {
         ),
       ),
       compteModifieLe: texteOuNul(reglement.compte_modifie_le),
+    },
+  };
+}
+
+function lireComplement(racine: Objet, lignes: unknown[]): ComplementPdf {
+  const destinataire = objet(racine.destinataire, "destinataire");
+  const immeuble = objet(racine.immeuble, "immeuble");
+  const gestionnaire = objet(racine.gestionnaire, "gestionnaire");
+  if (!Array.isArray(racine.lots)) throw new InstantaneIllisible("lots absents");
+  const retard = racine.retard === null || racine.retard === undefined ? null : objet(racine.retard, "retard");
+  return {
+    destinataireEmail: texteOuNul(destinataire.email),
+    immeubleCodeReference: texteOuNul(immeuble.code_reference),
+    immeubleAdresse: texteOuNul(immeuble.adresse),
+    immeubleVille: texteOuNul(immeuble.ville),
+    gestionnaire: { nom: texteOuNul(gestionnaire.nom), email: texteOuNul(gestionnaire.email) },
+    lots: racine.lots.map((brut, index) => {
+      const lot = objet(brut, `lot ${index}`);
+      return {
+        numero: nombre(lot.numero, `lot ${index}.numero`),
+        designation: texte(lot.designation, `lot ${index}.désignation`),
+        niveau: texteOuNul(lot.niveau),
+        tantiemes: nombre(lot.tantiemes, `lot ${index}.tantièmes`),
+      };
+    }),
+    lignes: lignes.map((brute, index) => {
+      const ligne = objet(brute, `ligne ${index}`);
+      return {
+        cleLibelle: texte(ligne.cle_libelle, `ligne ${index}.clé`),
+        baseTotale: nombre(ligne.base_totale, `ligne ${index}.base totale`),
+        montantPoste: nombre(ligne.montant_poste, `ligne ${index}.montant du poste`),
+      };
+    }),
+    retard: retard && {
+      tauxPenalite: nombre(retard.taux_penalite, "retard.taux"),
+      penalitePar: texte(retard.penalite_par, "retard.période"),
+      requiertMiseEnDemeure: retard.requiert_mise_en_demeure === true,
+      delaiPaiementJours: nombre(retard.delai_paiement_jours, "retard.délai"),
+      article: texteOuNul(retard.article),
     },
   };
 }

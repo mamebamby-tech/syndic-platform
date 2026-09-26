@@ -84,6 +84,8 @@ export interface Database {
           compte_bic: string | null;
           moyens_paiement_acceptes: MoyenPaiement[];
           bornes_anciennete_jours: number[];
+          gestionnaire_nom: string | null;
+          gestionnaire_email: string | null;
           cree_le: string;
         };
         Insert: Partial<Database["public"]["Tables"]["immeubles"]["Row"]> & {
@@ -121,6 +123,7 @@ export interface Database {
           conseil_syndical_exercices: number | null;
           plafond_pouvoirs_mandataire: number | null;
           plafond_depense_syndic: number | null;
+          article_retard: string | null;
           cree_le: string;
         };
         Insert: Partial<Database["public"]["Tables"]["reglements"]["Row"]> & {
@@ -419,6 +422,22 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      // Le PDF d'un appel émis, un seul, jamais remplacé. Écrit par
+      // public.enregistrer_document_appel seulement.
+      documents_appels: {
+        Row: {
+          appel_id: string;
+          immeuble_id: string;
+          chemin: string;
+          empreinte: string;
+          taille: number;
+          engendre_le: string;
+          engendre_par: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       // Lecture seule pour les utilisateurs : seuls des déclencheurs y écrivent.
       journal: {
         Row: {
@@ -440,6 +459,21 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      enregistrer_document_appel: {
+        Args: { p_appel: string; p_chemin: string; p_empreinte: string; p_taille: number };
+        Returns: undefined;
+      };
+      tracer_envoi_appel: {
+        Args: {
+          p_appel: string;
+          p_canal: "email";
+          p_adresse: string;
+          p_adresse_prevue: string | null;
+          p_reussi: boolean;
+          p_resultat: Record<string, unknown>;
+        };
+        Returns: string;
+      };
       generer_appels: {
         Args: { p_periode_id: string };
         Returns: number;

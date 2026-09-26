@@ -164,3 +164,15 @@ export async function listerModificationsParametres(
     .map((ligne) => decrireModification(ligne))
     .filter((modification): modification is ModificationDecrite => modification !== null);
 }
+
+// L'interlocuteur des copropriétaires, imprimé sur les appels (figé à l'émission).
+export async function chargerGestionnaire(immeubleId: string): Promise<{ nom: string; email: string }> {
+  const supabase = await creerClientServeur();
+  const { data, error } = await supabase
+    .from("immeubles")
+    .select("gestionnaire_nom, gestionnaire_email")
+    .eq("id", immeubleId)
+    .maybeSingle();
+  if (error) throw new Error(`Lecture du gestionnaire impossible : ${error.message}`);
+  return { nom: data?.gestionnaire_nom ?? "", email: data?.gestionnaire_email ?? "" };
+}

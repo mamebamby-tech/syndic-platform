@@ -216,6 +216,13 @@ describe("audit RLS — toutes les tables du schéma public", () => {
        values ($1, $2, $3, 1, 0)`,
       [appelId, unLotId, unPosteChargeId],
     );
+    // Le registre des PDF : une ligne, rattachée à l'appel de ce test (supprimée
+    // avec lui, en cascade).
+    await client.query(
+      `insert into documents_appels (appel_id, immeuble_id, chemin, empreinte, taille)
+       values ($1, $2, $3, repeat('a', 64), 1)`,
+      [appelId, mamellesImmeubleId, `${mamellesImmeubleId}/${appelId}.pdf`],
+    );
     await client.query(`insert into mises_en_demeure (appel_id, envoyee_le) values ($1, current_date)`, [
       appelId,
     ]);

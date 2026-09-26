@@ -9,8 +9,8 @@ import { valeursDe } from "@/lib/i18n/valeurs";
 // l'envoi. Une clé manquante dans la langue du destinataire retombe sur le
 // français (voir lib/i18n/messages.ts).
 //
-// Comme les documents, ces textes portent l'identité du cabinet, jamais le
-// nom du produit (lib/marque.ts).
+// Ces textes portent l'identité du cabinet, jamais le nom du produit : le
+// courriel part au nom du cabinet (décision 68, lib/courriel/expediteur.ts).
 //
 // Le `gabarit` ci-dessous est la valeur stockée dans `notifications.gabarit`.
 // WhatsApp Business n'envoie hors conversation que des modèles pré-approuvés

@@ -2,8 +2,8 @@ import type { AppelDetail, ContexteDocument } from "@/lib/data/appels";
 import { outilsDocument, type DocumentLocalise } from "@/lib/i18n/document";
 
 // Le document ressemble à ceux du cabinet, pas à l'application
-// (docs/04-charte.md) : seule l'identité de `organisations` y figure,
-// jamais le nom du produit.
+// (docs/04-charte.md) : l'identité de `organisations` en tête et en pied. Le
+// nom du produit ne figure que dans le pied de page du PDF (décision 68).
 //
 // Il est rendu dans la langue de SA version (`document.version`), jamais
 // dans celle de la personne connectée : le français est la seule version

@@ -41,7 +41,7 @@ insert into reglements (
   quorum_tantiemes_ratio, seconde_convocation_sans_quorum, ecretement_seuil_ratio,
   demande_convocation_ratio, carence_syndic_jours,
   conseil_syndical_membres, conseil_syndical_exercices,
-  plafond_pouvoirs_mandataire, plafond_depense_syndic)
+  plafond_pouvoirs_mandataire, plafond_depense_syndic, article_retard)
 select i.id,
   'Règlement de copropriété SCI Mamelles Tower', date '2025-09-01',
   'Me Tabara Mathurin DIOP, notaire associée, Charge de Dakar XX', true,
@@ -58,7 +58,8 @@ select i.id,
   0.3333, 15,         -- art. 29 : tiers des millièmes, carence de 15 jours
   3, 3,               -- art. 28 : trois copropriétaires, trois exercices
   null,               -- art. 31 : aucun plafond de pouvoirs par mandataire
-  null                -- art. 26-2 a) : plafond de dépense à fixer par l'assemblée
+  null,               -- art. 26-2 a) : plafond de dépense à fixer par l'assemblée
+  'art. 17'           -- article cité par le rappel des conséquences d'un retard
 from immeubles i where i.nom = 'Mamelles Tower';
 
 insert into motifs_delai_renforce (reglement_id, code, libelle)
@@ -322,7 +323,7 @@ join (values
 join proprietaires p on p.nom = v.nom and p.immeuble_id = i.id;
 
 -- ---------------------------------------------------------------------
--- Coordonnées de paiement FICTIVES
+-- Coordonnées de paiement et gestionnaire FICTIFS
 --
 -- Le compte réel du syndicat n'existe pas encore (docs/06-decisions.md,
 -- question n°1). Ce jeu fictif en porte un, inventé, pour que les appels
@@ -332,7 +333,9 @@ join proprietaires p on p.nom = v.nom and p.immeuble_id = i.id;
 -- (« première saisie », auteur inconnu).
 -- ---------------------------------------------------------------------
 update immeubles
-   set compte_titulaire = 'Syndicat des copropriétaires Mamelles Tower (fictif)',
+   set gestionnaire_nom = 'Aïssatou DIOP (fictive)',
+       gestionnaire_email = 'gestion.mamelles@example.com',
+       compte_titulaire = 'Syndicat des copropriétaires Mamelles Tower (fictif)',
        compte_banque = 'Banque de démonstration (fictive)',
        compte_numero = 'SN000 00000 000000000000 00',
        compte_bic = 'DEMOSNDAXXX',

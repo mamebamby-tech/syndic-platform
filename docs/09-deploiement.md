@@ -16,7 +16,7 @@ accumulé entre-temps est alors rattrapé **en bloc**, dans la séquence de lanc
 26/09/2026 : ne pas la reposer à chaque migration.
 
 Vérifié le 20/09/2026 sur le dépôt : le code de l'application lit **trois** variables, pas plus
-(hors `NODE_ENV`, posée par Vercel).
+(hors `NODE_ENV`, posée par Vercel). Depuis le 26/09/2026, deux de plus, facultatives et serveur uniquement : `EMAIL_EXPEDITEUR` et `EMAIL_CLE_API`, pour l'envoi des appels (voir plus bas).
 
 ## Le mode se déduit : la démonstration est l'état par défaut
 
@@ -64,6 +64,15 @@ l'exécution.
 - Pour le **déploiement réel** (plus tard) : saisir `NEXT_PUBLIC_SUPABASE_URL` et `URL_SUPABASE_PRODUCTION` avec la **même** adresse. Si l'une est fausse, le déploiement reste en démonstration, visible immédiatement (bandeau, `robots.txt`) : rien n'est indexé.
 - `NODE_ENV` est posée par Vercel : ne pas la saisir. En production, la route de connexion par lien (`/auth/confirmation`) n'existe pas : elle répond 404.
 
+### Pour envoyer les appels par courriel : deux variables serveur
+
+| Variable | Valeur | D'où elle vient | Visible du navigateur ? |
+|---|---|---|---|
+| `EMAIL_EXPEDITEUR` | l'adresse technique seule : `syndic@messages.coprane.com`. Le nom affiché n'est pas ici : c'est celui du cabinet (`organisations.nom`), Coprane en repli (décision 68) | Resend, domaine `messages.coprane.com` vérifié | **Non — serveur uniquement** |
+| `EMAIL_CLE_API` | clé API Resend (`re_…`) | Resend : *API Keys* | **Non — serveur uniquement** |
+
+Sans elles, l'écran d'envoi le dit et rien ne part. **Sur la démonstration**, l'envoi exige une adresse réelle de redirection : aucun message ne part vers les adresses fictives du jeu (décision 70), ni ne répond vers la boîte du cabinet.
+
 ## Variables à ne pas saisir
 
 | Variable | Pourquoi |
@@ -71,7 +80,7 @@ l'exécution.
 | `SUPABASE_SERVICE_ROLE_KEY` | **Serveur uniquement, et l'application ne la lit jamais.** Elle contourne toute la sécurité par ligne. Seuls des scripts lancés depuis un poste (`npm run dev:lien`) la lisent. Ne la mettez pas dans Vercel : inutile ici, et une fuite donnerait tous les droits sur la base. Jamais avec le préfixe `NEXT_PUBLIC_`. |
 | `DATABASE_URL` | **Serveur uniquement, non lue par l'application.** Connexion directe à Postgres (migrations, tests, seed) : réservée au poste de développement. |
 | `NEXT_PUBLIC_SITE_URL` | Lue seulement par `npm run dev:lien`. L'adresse du site que Supabase Auth utilise se règle dans Supabase (voir ci-dessous), pas ici. |
-| `PAIEMENT_*`, `WHATSAPP_*`, `EMAIL_*` | Aucun code ne les lit encore : ces intégrations ne sont pas construites (voir `docs/08-mise-en-service.md`). |
+| `PAIEMENT_*`, `WHATSAPP_*` | Aucun code ne les lit encore : ces intégrations ne sont pas construites (voir `docs/08-mise-en-service.md`). |
 | Toute clé, URL ou mot de passe de la base **réelle**, sur la démonstration | Voir « Ce qui ne doit jamais arriver ». |
 
 ## Réglages de Supabase (syndic-dev), qui ne sont pas des variables

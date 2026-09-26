@@ -200,6 +200,19 @@
       "format_invalide": "Format invalide : il doit contenir le jeton seq, sans espace ni caractère spécial.",
       "acces_refuse": "Vous n'avez pas le droit de modifier ces paramètres.",
       "enregistrement_impossible": "Enregistrement impossible. Réessayez, ou contactez l'administrateur."
+    },
+    "gestionnaire": {
+      "titre": "Interlocuteur des copropriétaires",
+      "consigne": "Imprimé sur chaque appel de fonds, dans le bloc d'identification. Un appel déjà émis garde celui qui figurait à son émission.",
+      "nom": "Nom du gestionnaire",
+      "email": "Adresse électronique du gestionnaire",
+      "enregistrer": "Enregistrer",
+      "enregistre": "Enregistré.",
+      "erreurs": {
+        "acces_refuse": "Modification réservée au gestionnaire et au propriétaire du cabinet.",
+        "email_invalide": "Adresse électronique invalide.",
+        "enregistrement_impossible": "Enregistrement impossible."
+      }
     }
   },
   "Lots": {
@@ -285,7 +298,21 @@
       "courriel_seulement": "Envoi par courriel seulement : WhatsApp indisponible ({motif}).",
       "injoignable": "Injoignable : aucun canal disponible ({motif})."
     },
-    "emissionBloquee": "Émission impossible : coordonnées bancaires du syndicat à renseigner."
+    "emissionBloquee": "Émission impossible : coordonnées bancaires du syndicat à renseigner.",
+    "actions": {
+      "emettre": "{nombre, plural, one {Émettre l'appel en brouillon} other {Émettre les # appels en brouillon}}",
+      "emettreConsigne": "L'émission est définitive : chaque appel est figé tel qu'il est, et son PDF est engendré une fois pour toutes. Un appel émis ne se modifie plus ; il s'annule par un avoir.",
+      "confirmerEmission": "Confirmer l'émission",
+      "annuler": "Annuler",
+      "enCours": "En cours…",
+      "resultatEmission": "{emis, plural, =0 {Aucun appel émis} one {# appel émis} other {# appels émis}} · {pdf, plural, =0 {aucun PDF engendré} one {# PDF engendré} other {# PDF engendrés}}.",
+      "erreurs": "{nombre, plural, one {# erreur} other {# erreurs}} :",
+      "pdfManquants": "{nombre, plural, one {Engendrer le PDF manquant} other {Engendrer les # PDF manquants}}",
+      "pdfManquantsConsigne": "Ces appels ont été émis hors de cet écran : leur PDF s'engendre depuis leur instantané, une seule fois.",
+      "preparerEnvoi": "Préparer l'envoi par courriel",
+      "ouvrirPdf": "Ouvrir le PDF",
+      "pdfAbsent": "PDF pas encore engendré"
+    }
   },
   "StatutAppel": {
     "brouillon": "Brouillon",
@@ -387,7 +414,39 @@
         "consigne": "Rappelez cette référence dans le libellé de votre règlement."
       },
       "ninea": "NINEA {valeur}",
-      "rccm": "RCCM {valeur}"
+      "rccm": "RCCM {valeur}",
+      "identification": {
+        "destinataire": "Destinataire",
+        "lots": "Lots concernés",
+        "lot": "Lot {numero} — {designation}",
+        "lotTantiemes": "{tantiemes, number} tantièmes",
+        "gestionnaire": "Votre gestionnaire",
+        "gestionnaireARenseigner": "Gestionnaire non renseigné",
+        "references": "Références",
+        "referenceAppel": "Appel {reference}",
+        "referenceImmeuble": "Immeuble {code} — {nom}",
+        "paiement": "Mode de paiement"
+      },
+      "detail": {
+        "titre": "Détail par lot et par poste",
+        "lot": "Lot",
+        "poste": "Poste",
+        "cle": "Clé de répartition",
+        "base": "Base de répartition",
+        "baseValeur": "{base, number} / {total, number}",
+        "quotePart": "Quote-part",
+        "sousTotalLot": "Total du lot {numero}",
+        "explication": "Quote-part = montant du poste × base du lot ÷ base totale de la clé.",
+        "montantPoste": "Poste au budget : {montant}"
+      },
+      "exigibilite": "Somme exigible le {date}",
+      "retard": {
+        "titre": "En cas de retard",
+        "texte": "Le règlement de copropriété{article, select, aucun {} other { ({article})}} prévoit que les sommes non réglées à l'échéance portent intérêt au taux de {taux} par {par, select, mensuel {mois} trimestriel {trimestre} semestriel {semestre} annuel {an} other {période}} de retard{miseEnDemeure, select, oui {, après mise en demeure restée infructueuse} other {}}.",
+        "inconnu": "Les conséquences d'un retard sont celles que prévoit le règlement de copropriété."
+      },
+      "page": "Page {page} sur {total}",
+      "editeAvec": "Document édité avec {produit}"
     },
     "moyens": {
       "wave": "Wave",
@@ -408,6 +467,12 @@
       "whatsapp": {
         "corps": "{cabinet} : votre appel de fonds {reference} ({periode}) est disponible. Montant : {montant}, échéance le {echeance}."
       }
+    },
+    "courriel": {
+      "demonstrationSujet": "[Démonstration] {sujet}",
+      "demonstration": "DÉMONSTRATION — ce message était destiné à {nom} ({adresse}), destinataire fictif. Il vous a été redirigé : aucun copropriétaire ne l'a reçu.",
+      "pieceJointe": "L'appel de fonds est joint à ce message au format PDF.",
+      "pied": "Message envoyé pour le compte de {cabinet}. Pour toute question, répondez à ce message."
     }
   },
   "Paiements": {
@@ -482,5 +547,63 @@
     "injoignable": "Injoignable",
     "groupe": "groupe",
     "vide": "Aucun propriétaire ne correspond à ce filtre."
+  },
+  "Envoi": {
+    "titre": "Envoi des appels — {periode}",
+    "retour": "Retour aux appels de fonds",
+    "aucunAppel": "Aucun appel émis pour la période de travail : rien à envoyer.",
+    "recapitulatif": "Récapitulatif avant envoi",
+    "consigneRecapitulatif": "Rien ne part tant que vous n'avez pas validé ce récapitulatif. WhatsApp n'est pas encore branché : seuls les destinataires joignables par courriel reçoivent leur appel.",
+    "decompte": {
+      "pret": "{nombre, plural, =0 {Aucun prêt} one {# prêt (courriel et WhatsApp)} other {# prêts (courriel et WhatsApp)}}",
+      "courriel_seulement": "{nombre, plural, =0 {Aucun par courriel seulement} one {# par courriel seulement} other {# par courriel seulement}}",
+      "whatsapp_seulement": "{nombre, plural, =0 {Aucun par WhatsApp seulement} one {# par WhatsApp seulement — non servi} other {# par WhatsApp seulement — non servis}}",
+      "injoignable": "{nombre, plural, =0 {Aucun injoignable} one {# injoignable} other {# injoignables}}"
+    },
+    "etat": {
+      "pret": "Prêt",
+      "courriel_seulement": "Courriel seulement",
+      "whatsapp_seulement": "WhatsApp seulement",
+      "injoignable": "Injoignable"
+    },
+    "injoignables": "Injoignables — aucun canal d'envoi, à corriger dans leur fiche : {noms}.",
+    "whatsappSeulement": "Joignables par WhatsApp seulement, non servis par cet envoi : {noms}.",
+    "colonnes": {
+      "destinataire": "Destinataire",
+      "reference": "Référence",
+      "etat": "État",
+      "adresse": "Adresse électronique",
+      "envoi": "Dernier envoi"
+    },
+    "jamaisEnvoye": "Jamais envoyé",
+    "envoyeLe": "Envoyé le {date}",
+    "partira": "{nombre, plural, =0 {Aucun courriel ne partira.} one {# courriel partira.} other {# courriels partiront.}}",
+    "sansPdf": "{nombre, plural, one {# appel n'a pas encore de PDF : il sera engendré depuis son instantané avant l'envoi.} other {# appels n'ont pas encore de PDF : ils seront engendrés depuis leur instantané avant l'envoi.}}",
+    "demonstration": {
+      "titre": "Mode démonstration",
+      "consigne": "Les adresses de ce jeu de données sont fictives : aucun message ne leur est envoyé. Tous les messages partent vers l'adresse réelle ci-dessous, avec la mention du destinataire fictif auquel ils étaient destinés.",
+      "redirection": "Adresse réelle de redirection"
+    },
+    "valider": "J'ai vérifié ce récapitulatif : les destinataires, leur état et le nombre de courriels.",
+    "renvoyer": "{nombre, plural, one {Renvoyer aussi l'appel déjà envoyé. Il l'a déjà été : son destinataire le recevra une seconde fois.} other {Renvoyer aussi les # appels déjà envoyés. Ils l'ont déjà été : leurs destinataires les recevront une seconde fois.}}",
+    "envoyer": "Envoyer",
+    "reserve": "L'envoi est réservé au gestionnaire et au propriétaire du cabinet.",
+    "nonConfigure": "Le service d'envoi n'est pas configuré (EMAIL_EXPEDITEUR, EMAIL_CLE_API) : rien ne peut partir.",
+    "refus": {
+      "non_habilite": "Envoi refusé : réservé au gestionnaire et au propriétaire du cabinet.",
+      "non_configure": "Envoi refusé : le service d'envoi n'est pas configuré.",
+      "garde_fou": "Envoi refusé par le garde-fou : {detail}"
+    },
+    "bilan": {
+      "titre": "Bilan de l'envoi",
+      "envoyes": "{nombre, plural, =0 {Aucun courriel envoyé.} one {# courriel envoyé.} other {# courriels envoyés.}}",
+      "redirige": "En démonstration, tous vers {adresse}.",
+      "echecs": "{nombre, plural, one {# échec :} other {# échecs :}}",
+      "nonServis": "{nombre, plural, one {# non servi :} other {# non servis :}}",
+      "motif": {
+        "sans_courriel": "pas de courriel",
+        "deja_envoye": "déjà envoyé"
+      }
+    }
   }
 }

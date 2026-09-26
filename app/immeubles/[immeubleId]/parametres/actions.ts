@@ -158,3 +158,28 @@ export async function confirmerModification(formData: FormData) {
 export async function refuserModification(formData: FormData) {
   await decider(formData, "refuser_coordonnees_paiement");
 }
+
+export type EtatGestionnaire = { statut: "initial" | "enregistre" } | { statut: "erreur"; erreur: "acces_refuse" | "email_invalide" | "enregistrement_impossible" };
+
+// Le contact gestionnaire imprimé sur les appels. Modification directe (ce n'est
+// pas une coordonnée de paiement) ; les appels déjà émis gardent celui de leur
+// instantané.
+export async function enregistrerGestionnaire(_precedent: EtatGestionnaire, formData: FormData): Promise<EtatGestionnaire> {
+  const immeubleId = texte(formData, "immeubleId");
+  const courants = await chargerParametres(immeubleId);
+  if (!courants || !peutParametrer(await roleSurOrganisation(courants.organisationId))) {
+    return { statut: "erreur", erreur: "acces_refuse" };
+  }
+  const nom = texte(formData, "gestionnaireNom").trim();
+  const email = texte(formData, "gestionnaireEmail").trim();
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { statut: "erreur", erreur: "email_invalide" };
+
+  const supabase = await creerClientServeur();
+  const { error } = await supabase
+    .from("immeubles")
+    .update({ gestionnaire_nom: nom || null, gestionnaire_email: email || null })
+    .eq("id", immeubleId);
+  if (error) return { statut: "erreur", erreur: "enregistrement_impossible" };
+  revalidatePath(`/immeubles/${immeubleId}/parametres`);
+  return { statut: "enregistre" };
+}

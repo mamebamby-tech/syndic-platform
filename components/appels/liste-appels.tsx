@@ -23,11 +23,14 @@ export function ListeAppels({
   appels,
   contexte,
   document,
+  appelsAvecPdf = [],
 }: {
   immeubleId: string;
   appels: AppelDetail[];
   contexte: ContexteDocument;
   document: DocumentLocalise;
+  // Appels émis dont le PDF est enregistré : le lien sert CE fichier.
+  appelsAvecPdf?: string[];
 }) {
   const t = useTranslations("Appels");
   const tStatut = useTranslations("StatutAppel");
@@ -135,6 +138,22 @@ export function ListeAppels({
                 { type: "unit", style: "long" },
               ),
             })}
+          </p>
+        )}
+        {appelSelectionne && appelSelectionne.statut !== "brouillon" && (
+          <p className="mb-3 text-sm">
+            {appelsAvecPdf.includes(appelSelectionne.id) ? (
+              <a
+                href={`/immeubles/${immeubleId}/appels/${appelSelectionne.id}/pdf`}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex min-h-11 items-center text-action underline underline-offset-2"
+              >
+                {t("actions.ouvrirPdf")}
+              </a>
+            ) : (
+              <span className="text-encre-3">{t("actions.pdfAbsent")}</span>
+            )}
           </p>
         )}
         {appelSelectionne && (

@@ -3,6 +3,10 @@ import { trouverPeriodeDeTravail } from "@/lib/data/periodes";
 import { listerAppelsDeLaPeriode } from "@/lib/data/appels";
 import { ListeAppels } from "@/components/appels/liste-appels";
 import { chargerDocumentLocalise } from "@/lib/i18n/document-serveur";
+import { chargerAppelsAEnvoyer } from "@/lib/data/envoi-appels";
+import { peutParametrer, roleSurOrganisation } from "@/lib/data/parametres-immeuble";
+import { trouverImmeuble } from "@/lib/data/immeubles";
+import { ActionsAppels } from "@/components/appels/actions-appels";
 
 export default async function PageAppels({
   params,
@@ -34,6 +38,10 @@ export default async function PageAppels({
   // Le document est rendu dans sa langue opposable, pas dans celle de la
   // personne : voir lib/i18n/document.ts.
   const document = await chargerDocumentLocalise();
+  const [envoi, immeuble] = await Promise.all([chargerAppelsAEnvoyer(immeubleId), trouverImmeuble(immeubleId)]);
+  const habilite = immeuble ? peutParametrer(await roleSurOrganisation(immeuble.organisation_id)) : false;
+  const appelsAvecPdf = envoi.appels.map((a) => a.appelId).filter((id) => !envoi.sansPdf.includes(id));
+  const brouillonsEmissibles = appels.filter((a) => a.statut === "brouillon" && !a.obsolete).length;
   const nombreObsoletes = appels.filter((a) => a.statut === "brouillon" && a.obsolete).length;
   const nombreGeneres = generes === undefined ? Number.NaN : Number(generes);
 
@@ -55,11 +63,21 @@ export default async function PageAppels({
         </div>
       )}
 
+      {habilite && (
+        <ActionsAppels
+          immeubleId={immeubleId}
+          brouillons={contexte.compteSyndicat ? brouillonsEmissibles : 0}
+          sansPdf={envoi.sansPdf.length}
+          emis={envoi.appels.length}
+        />
+      )}
+
       <ListeAppels
         immeubleId={immeubleId}
         appels={appels}
         contexte={contexte}
         document={document}
+        appelsAvecPdf={appelsAvecPdf}
       />
     </div>
   );

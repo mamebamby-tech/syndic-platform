@@ -197,7 +197,7 @@ describe("instantané d'un appel émis — le document ne change plus", () => {
         const e = await ligne(b.id);
         expect(e.statut).toBe("emis");
         expect(e.instantane).not.toBeNull();
-        expect(e.instantane.version).toBe(1);
+        expect(e.instantane.version).toBe(2);
         const { rows } = await client.query(`select $1::date = current_date as ok`, [e.date_emission]);
         expect(rows[0].ok).toBe(true);
       });
