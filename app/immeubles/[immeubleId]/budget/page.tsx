@@ -1,6 +1,6 @@
 import { getFormatter, getTranslations } from "next-intl/server";
 import { getValeurs } from "@/lib/i18n/valeurs-serveur";
-import { trouverPeriodeCourante } from "@/lib/data/periodes";
+import { trouverPeriodeDeTravail } from "@/lib/data/periodes";
 import { chargerBudget } from "@/lib/data/budget";
 import { SelecteurCle } from "@/components/budget/selecteur-cle";
 import type { Messages } from "@/lib/i18n/messages";
@@ -17,7 +17,7 @@ export default async function PageBudget({
   params: Promise<{ immeubleId: string }>;
 }) {
   const { immeubleId } = await params;
-  const periode = await trouverPeriodeCourante(immeubleId);
+  const periode = await trouverPeriodeDeTravail(immeubleId);
   const t = await getTranslations("Budget");
   const tCommun = await getTranslations("Commun");
   const format = await getFormatter();

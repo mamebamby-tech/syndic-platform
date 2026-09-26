@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { trouverPeriodeCourante } from "@/lib/data/periodes";
+import { trouverPeriodeDeTravail } from "@/lib/data/periodes";
 import { listerAppelsDeLaPeriode } from "@/lib/data/appels";
 import { ListeAppels } from "@/components/appels/liste-appels";
 import { chargerDocumentLocalise } from "@/lib/i18n/document-serveur";
@@ -13,7 +13,7 @@ export default async function PageAppels({
 }) {
   const { immeubleId } = await params;
   const { generes } = await searchParams;
-  const periode = await trouverPeriodeCourante(immeubleId);
+  const periode = await trouverPeriodeDeTravail(immeubleId);
   const t = await getTranslations("Appels");
 
   if (!periode) {

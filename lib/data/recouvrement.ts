@@ -1,6 +1,6 @@
 import "server-only";
 import { creerClientServeur } from "@/lib/supabase/server";
-import type { PeriodeCourante } from "@/lib/data/periodes";
+import type { Periode } from "@/lib/data/periodes";
 import { choisirPeriodeEnCours, situationDesAppels, type SituationAppel } from "@/lib/recouvrement/calcul";
 import { etatEnvoi } from "@/lib/data/anomalie-contact";
 
@@ -14,10 +14,10 @@ export interface Destinataire {
 export interface DonneesRecouvrement {
   // Date du jour (AAAA-MM-JJ, UTC comme toutes les dates du schéma).
   aujourdhui: string;
-  // La période en cours au sens de la décision 67 : la plus récente émise, sinon
-  // la prochaine à venir. Pas celle de trouverPeriodeCourante (Budget, Appels),
-  // qui est la plus récente tout court : la période qu'on prépare.
-  periode: PeriodeCourante | null;
+  // La PÉRIODE EN COURS (décision 67) : la plus récente émise, sinon la prochaine
+  // à venir. Pas la période de travail (trouverPeriodeDeTravail, Budget et
+  // Appels), qui est la plus récente, émise ou non.
+  periode: Periode | null;
   bornes: number[];
   situations: SituationAppel[];
   // Ceux à qui un appel est adressé : les entités non groupées et les groupes.
@@ -128,7 +128,7 @@ export async function chargerRecouvrement(immeubleId: string): Promise<DonneesRe
     (periodes ?? []).map((p) => ({ ...p, dateDebut: p.date_debut, emise: emises.has(p.id) })),
     aujourdhui,
   );
-  const periode: PeriodeCourante | null = choisie && {
+  const periode: Periode | null = choisie && {
     id: choisie.id,
     libelle: choisie.libelle,
     dateDebut: choisie.date_debut,

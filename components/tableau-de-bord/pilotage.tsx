@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 import { useValeurs } from "@/lib/i18n/utiliser-valeurs";
-import type { PeriodeCourante } from "@/lib/data/periodes";
+import type { Periode } from "@/lib/data/periodes";
 import type {
   MontantParTranche,
   Recouvrement,
@@ -30,7 +30,7 @@ export function PeriodeEnCours({
   joursAvantEcheance,
   immeubleId,
 }: {
-  periode: PeriodeCourante | null;
+  periode: Periode | null;
   joursAvantEcheance: number | null;
   immeubleId: string;
 }) {

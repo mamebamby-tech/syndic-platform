@@ -41,6 +41,14 @@ synonymes » — et la traduction est exactement le moment où l'on en invente.
 
 Ce qui est tranché, avec la date, pour ne pas être rouvert à la traduction.
 
+### Période en cours, période de travail (français) — 26/09/2026
+
+Deux notions, deux mots (décision 67). **Période en cours** : pour consulter et
+piloter (tableau de bord, comptes copropriétaires) — la plus récente dont l'appel
+a été émis. **Période de travail** : pour préparer (budget, appels de fonds) — la
+plus récente, émise ou non. Aucun troisième mot (« période courante », « période
+active ») ; une traduction devra garder la distinction.
+
 ### Charges communes (français) — 19/09/2026
 
 Le terme juridique est **« charges communes »** (art. 15 du règlement) et il

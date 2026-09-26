@@ -2,7 +2,7 @@ import "server-only";
 import { creerClientServeur } from "@/lib/supabase/server";
 import type { StatutPeriode } from "@/lib/types/database";
 
-export interface PeriodeCourante {
+export interface Periode {
   id: string;
   libelle: string;
   dateDebut: string;
@@ -12,13 +12,13 @@ export interface PeriodeCourante {
   exerciceLibelle: string;
 }
 
-// V1 : un immeuble a une période « courante » implicite — la plus
-// récente — pas de sélecteur de période. Voir docs/06-decisions.md.
-// C'est la période qu'on PRÉPARE (Budget, Appels). La période EN COURS du
-// tableau de bord (décision 67) est autre : voir choisirPeriodeEnCours.
-export async function trouverPeriodeCourante(
+// La PÉRIODE DE TRAVAIL (décision 67) : la plus récente, émise ou non. Elle
+// sert à préparer — écrans Budget et Appels de fonds. Ne pas la confondre avec
+// la PÉRIODE EN COURS, qui sert à consulter et à piloter (tableau de bord,
+// comptes) : voir choisirPeriodeEnCours dans lib/recouvrement/calcul.ts.
+export async function trouverPeriodeDeTravail(
   immeubleId: string,
-): Promise<PeriodeCourante | null> {
+): Promise<Periode | null> {
   const supabase = await creerClientServeur();
 
   const { data: exercices, error: erreurExercices } = await supabase
