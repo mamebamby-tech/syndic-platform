@@ -28,14 +28,15 @@ export default async function GabaritImmeuble({
   const role = await roleSurOrganisation(immeuble.organisation_id);
 
   return (
-    <div className="flex min-h-screen bg-fond">
+    // Téléphone : la navigation passe au-dessus du contenu ; poste de travail : à gauche.
+    <div className="flex min-h-screen flex-col bg-fond md:flex-row">
       <BarreLaterale
         organisationNom={organisationNom}
         immeubles={immeubles}
         immeubleActuelId={immeubleId}
         peutParametrer={peutParametrer(role)}
       />
-      <main className="min-w-0 flex-1 overflow-x-auto p-8">{children}</main>
+      <main className="min-w-0 flex-1 overflow-x-auto p-4 md:p-8">{children}</main>
     </div>
   );
 }

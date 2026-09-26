@@ -486,19 +486,22 @@ describe("paiements manuels — base de données", () => {
   });
 
   describe("le relevé : seuls les appels émis, partiels ou soldés comptent", () => {
+    // Limité à la période de ce test : le seed porte aussi des appels et des
+    // paiements pour ces propriétaires (trimestres déjà appelés).
     const brutsDe = async (proprietaireId: string) => {
       const appels = (
         await client.query(
           `select id, reference, montant_total::float8 as montant_total, statut, date_echeance::text as date_echeance, periode_id
-           from appels where proprietaire_id = $1`,
-          [proprietaireId],
+           from appels where proprietaire_id = $1 and periode_id = $2`,
+          [proprietaireId, periodeId],
         )
       ).rows as AppelBrut[];
       const paiements = (
         await client.query(
           `select id, appel_id, montant::float8 as montant, moyen, statut, date_paiement::text as date_paiement,
-                  reference_externe, annule_paiement_id, motif from paiements where proprietaire_id = $1`,
-          [proprietaireId],
+                  reference_externe, annule_paiement_id, motif from paiements
+           where proprietaire_id = $1 and appel_id in (select id from appels where periode_id = $2)`,
+          [proprietaireId, periodeId],
         )
       ).rows as PaiementBrut[];
       return { appels, paiements, totaux: calculerTotaux(appels, paiements) };

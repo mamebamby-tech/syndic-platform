@@ -7,20 +7,45 @@ comportement.
 ## Côté syndic — poste de travail, 1280 px
 
 ### Tableau de bord
-**Construit à ce jour : le panneau « à traiter » pour les coordonnées de
-paiement** — état (renseignées ou non, l'émission des appels est bloquée
+**Règle : chaque chiffre mène à une action** — un lien vers une liste filtrée ou
+vers l'écran qui permet d'agir. Un chiffre sans action n'y figure pas.
+
+Construit, de haut en bas : la **période en cours** (décision 67 : la plus
+récente dont l'appel a été émis, sinon la prochaine à venir ; exercice, trimestre,
+échéance en toutes lettres, jours qui en séparent ; mène aux appels) ; le
+**recouvrement de la période en cours** (appelé, encaissé, reste dû sur la
+période, taux arrondi par défaut, une barre de progression) ; les cartes
+**« à traiter »** : propriétaires en retard (nombre, montant échu, et la liste —
+nom, échu, jours de retard, le plus ancien d'abord — avec le lien vers la liste
+complète), ancienneté du reste dû **toutes périodes** avec son total, en tranches
+comptées **par appel** (un propriétaire qui doit sur deux trimestres figure dans
+deux tranches ; paramètre d'immeuble, voir `docs/03-regles-metier.md`), propriétaires
+injoignables (aucun canal d'envoi : une anomalie, pas une statistique — sans
+anomalie, pas de chiffre), coordonnées de paiement ; en bas, discret,
+l'historique des cinq dernières modifications. Lisible sur téléphone.
+
+**Un mot, un montant.** « Reste dû » est toujours qualifié : « sur la période »
+(la période en cours) ou « toutes périodes ». Aucun écran ne présente deux
+montants différents sous le même libellé.
+
+**Coordonnées de paiement** — état (renseignées ou non, l'émission des appels est bloquée
 tant qu'elles ne le sont pas), dernière modification, et **alerte sur la
 modification en attente de confirmation** : quand, par qui, ce qui change (avant →
 après, numéros masqués), avec le lien pour la vérifier. L'alerte **disparaît à la
-confirmation** (ou au refus). Sous le
-panneau, l'historique récent des modifications. C'est la page d'accueil de
-l'immeuble ; tout le personnel la voit, lecteurs compris. Le reste (chiffres du
-trimestre, comptes copropriétaires, répartition) n'est pas construit.
+confirmation** (ou au refus). C'est la page d'accueil de l'immeuble ; tout le
+personnel la voit, lecteurs compris.
 
-Chiffres du trimestre : appelé, encaissé, reste à recouvrer, trésorerie. Tableau
-des comptes copropriétaires avec statut (à jour, partiel, impayé). Panneau « à
-traiter » : anomalies de contact, postes non chiffrés, échéances d'assemblée.
-Répartition du budget par poste.
+Pas encore construit : trésorerie, postes non chiffrés, échéances d'assemblée,
+répartition du budget par poste.
+
+### Comptes copropriétaires
+La liste vers laquelle mènent les cartes du tableau de bord : un propriétaire
+destinataire d'appels par ligne (un groupe compte pour un), avec son appelé,
+son payé et son statut sur la période en cours (soldé, partiel, impayé), son
+reste dû toutes périodes confondues et son plus ancien retard ; les plus gros
+restes dus d'abord. Filtres par l'adresse : `?filtre=en-retard`, `reste-du`,
+`injoignables`, ou `?anciennete=<tranche>` (`a-echoir`, `1-30`, …, `91-plus`).
+Chaque nom mène au relevé du propriétaire.
 
 **Sélecteur d'immeuble** en tête de la barre latérale : le cabinet en gère
 plusieurs. Le logo du cabinet ne change pas, le nom de l'immeuble si.

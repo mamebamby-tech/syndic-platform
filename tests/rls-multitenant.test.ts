@@ -13,6 +13,7 @@ import { commeUtilisateur } from "./simuler-utilisateur";
 
 describe("sécurité par ligne — periodes, budget_lignes, generer_appels", () => {
   let client: Client;
+  let exerciceTestId: string;
   let periodeMamellesId: string;
   let budgetLigneMamellesId: string;
   let userGestionnaireMamelles: string;
@@ -29,17 +30,27 @@ describe("sécurité par ligne — periodes, budget_lignes, generer_appels", () 
     const mamelles = immeuble[0];
     if (!mamelles) throw new Error("Immeuble 'Mamelles Tower' introuvable.");
 
-    const { rows: periode } = await client.query<{ id: string }>(
-      `select p.id from periodes p
-       join exercices e on e.id = p.exercice_id
-       where e.immeuble_id = $1 order by p.date_debut desc limit 1`,
+    // Période propre à ce test, en brouillon : celles du seed sont appelées et
+    // leur budget verrouillé, ce qui répondrait à la place de la sécurité par
+    // ligne. Supprimée avec son exercice en fin de test.
+    const { rows: exercice } = await client.query<{ id: string }>(
+      `insert into exercices (immeuble_id, libelle, date_debut, date_fin)
+       values ($1, 'Exercice test RLS multi-cabinet', '2097-01-01', '2097-12-31') returning id`,
       [mamelles.id],
+    );
+    exerciceTestId = exercice[0]!.id;
+    const { rows: periode } = await client.query<{ id: string }>(
+      `insert into periodes (exercice_id, libelle, date_debut, date_fin, date_echeance)
+       values ($1, 'Période test RLS multi-cabinet', '2097-01-01', '2097-03-31', '2097-01-01') returning id`,
+      [exerciceTestId],
     );
     periodeMamellesId = periode[0]!.id;
 
     const { rows: budgetLigne } = await client.query<{ id: string }>(
-      `select id from budget_lignes where periode_id = $1 limit 1`,
-      [periodeMamellesId],
+      `insert into budget_lignes (periode_id, poste_charge_id, montant)
+       select $1, id, 0 from postes_charges where immeuble_id = $2 order by ordre limit 1
+       returning id`,
+      [periodeMamellesId, mamelles.id],
     );
     budgetLigneMamellesId = budgetLigne[0]!.id;
 
@@ -77,6 +88,7 @@ describe("sécurité par ligne — periodes, budget_lignes, generer_appels", () 
   });
 
   afterAll(async () => {
+    await client.query(`delete from exercices where id = $1`, [exerciceTestId]);
     await client.query(`delete from immeubles where id = $1`, [autreImmeubleId]);
     await client.query(`delete from organisations where id = $1`, [autreOrganisationId]);
     await client.query(`delete from auth.users where id = any($1)`, [

@@ -60,6 +60,24 @@ La plateforme **calcule** la pénalité, l'affiche, et exige un geste explicite
 pour l'appliquer ou y renoncer — avec l'auteur et le motif enregistrés
 (`penalites.statut`, `decide_par`, `motif`).
 
+### Suivi du retard (tableau de bord)
+
+Ce n'est pas une disposition du règlement : c'est la façon dont le cabinet
+lit ses impayés. Paramétré quand même, pour qu'un autre cabinet le règle à sa
+façon sans toucher au code.
+
+| Règle | Valeur | Où |
+|---|---|---|
+| Un reste dû est **en retard** dès le lendemain de l'échéance de son appel | `appels.date_echeance` | `lib/recouvrement/calcul.ts` (`estEnRetard`) |
+| Tranches d'ancienneté du reste dû : à échoir, 1-30, 31-60, 61-90, au-delà | bornes 30, 60, 90 jours | `immeubles.bornes_anciennete_jours` (défaut `{30,60,90}`) |
+
+Le retard n'entraîne rien d'automatique : ni pénalité, ni mise en demeure. Le
+délai de paiement de l'article 16 (`delai_paiement_jours`, 30 jours) n'est pas
+retranché : la tranche 1-30 correspond précisément à ce mois, et c'est à la
+personne qui relance d'en tenir compte. Des appels trimestriels ont des
+échéances espacées de 90 jours : à une date donnée, seules quelques tranches
+sont peuplées, et c'est normal.
+
 Garanties de recouvrement (articles 18 et 27), à surfacer comme actions et non
 à automatiser : hypothèque légale sur le lot, saisie-attribution des loyers du
 locataire, saisie du mobilier, adjudication judiciaire du lot. Les frais de

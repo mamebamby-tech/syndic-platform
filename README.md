@@ -153,7 +153,11 @@ suivent et appliquent les migrations : voir « Où en est chaque base ».)
 se charge jamais sur la base réelle, dont le registre vient de `donnees-privees/`.
 
 Le seed se termine par des contrôles : 62 lots, 10 000 tantièmes, 62
-rattachements, 21 entités. Il échoue plutôt que de charger un jeu incohérent.
+rattachements, 21 entités, et le recouvrement des trois trimestres appelés
+(appelé, encaissé, nombre d'appels soldés, partiels et impayés, reste dû total).
+Il échoue plutôt que de charger un jeu incohérent. Ses paiements portent des dates
+jusqu'au 25 septembre 2026 : `enregistrer_paiement` refuse une date future, donc le
+seed ne se charge pas avant cette date.
 
 ### 5. Variables d'environnement
 

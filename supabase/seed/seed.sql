@@ -24,9 +24,8 @@ values ('ENIGMA AFRICA SARL', 'enigma-africa', '010008391 2R2', 'SN.DKR.2023.B.2
         'Cité Keur Damel, Villa N°17, Dakar', 'enigma@enigmasn.com');
 
 -- code_reference : préfixe des références d'appel (MT-2026T4-007).
--- Les coordonnées bancaires du syndicat (compte_*) restent VIDES : le compte
--- n'existe pas encore (docs/06-decisions.md, question n°1), et l'émission des
--- appels est bloquée tant qu'elles le sont.
+-- Les coordonnées bancaires du syndicat (compte_*) sont posées plus bas, fictives :
+-- l'émission des appels est bloquée tant qu'elles sont vides.
 insert into immeubles (organisation_id, nom, adresse, ville, pays, titre_foncier, code_reference)
 select id, 'Mamelles Tower', 'Corniche des Mamelles, Ngor-Almadies', 'Dakar', 'SN', 'TF n°26821/NGA', 'MT'
 from organisations where slug = 'enigma-africa';
@@ -323,9 +322,44 @@ join (values
 join proprietaires p on p.nom = v.nom and p.immeuble_id = i.id;
 
 -- ---------------------------------------------------------------------
--- Exercice et période en cours — postes encore à zéro, à chiffrer via
--- l'écran Budget (docs/06-decisions.md, question ouverte n°4 : les
--- montants réels ne sont pas connus). L'échéance se lit sur le règlement
+-- Coordonnées de paiement FICTIVES
+--
+-- Le compte réel du syndicat n'existe pas encore (docs/06-decisions.md,
+-- question n°1). Ce jeu fictif en porte un, inventé, pour que les appels
+-- puissent être émis et le recouvrement raconté. Écrites directement : le
+-- seed tourne hors session, sans les deux membres qu'exige la double
+-- validation. Le déclencheur de l'immeuble en laisse la trace dans `journal`
+-- (« première saisie », auteur inconnu).
+-- ---------------------------------------------------------------------
+update immeubles
+   set compte_titulaire = 'Syndicat des copropriétaires Mamelles Tower (fictif)',
+       compte_banque = 'Banque de démonstration (fictive)',
+       compte_numero = 'SN000 00000 000000000000 00',
+       compte_bic = 'DEMOSNDAXXX',
+       moyens_paiement_acceptes = '{wave,orange_money,virement,virement_international,especes}'
+ where nom = 'Mamelles Tower';
+
+-- ---------------------------------------------------------------------
+-- Exercice 2026 : trois trimestres appelés
+--
+-- Situation racontée au 26 septembre 2026 : un trimestre courant qui se porte
+-- bien, un passé qui traîne.
+--   - 4e trimestre, période en cours : appels émis le 15 septembre, échéance au
+--     1er octobre ; environ 60 % encaissés, le reste à échoir — neuf propriétaires
+--     soldés, trois partiels, sept pas encore payés ;
+--   - 3e et 2e trimestres : environ 1 200 000 FCFA d'arriérés chez quatre
+--     propriétaires. NDIAYE HOLDING, gros porteur (2 115 tantièmes), n'a réglé que
+--     la moitié de chacun ; Tarik OZTURK doit le 3e, SCI BAOBAB et Ousmane KANE
+--     le 2e.
+-- Au 26/09/2026, le reste dû tombe donc dans trois tranches d'ancienneté :
+-- à échoir (T4), 61-90 jours (T3, 87 jours) et au-delà de 90 jours (T2). Les
+-- tranches 1-30 et 31-60 sont vides, et c'est normal : des appels trimestriels
+-- ont des échéances espacées de 90 jours.
+--
+-- Montants FICTIFS (question ouverte n°4 : les montants réels ne sont pas
+-- connus), identiques d'un trimestre à l'autre. Les postes d'ascenseur restent
+-- à zéro : leur clé de répartition est contestée et c'est à l'assemblée de la
+-- trancher (docs/03-regles-metier.md, § 1). L'échéance se lit sur le règlement
 -- en vigueur (jour_exigibilite), pas sur une valeur inventée ici.
 -- ---------------------------------------------------------------------
 insert into exercices (immeuble_id, libelle, date_debut, date_fin)
@@ -333,27 +367,106 @@ select i.id, 'Exercice 2026', date '2026-01-01', date '2026-12-31'
 from immeubles i where i.nom = 'Mamelles Tower';
 
 insert into periodes (exercice_id, libelle, date_debut, date_fin, date_echeance, statut)
-select e.id, '4e trimestre 2026', date '2026-10-01', date '2026-12-31',
-       (date '2026-10-01' + ((r.jour_exigibilite - 1) || ' days')::interval)::date,
-       'brouillon'
+select e.id, v.libelle, v.debut, v.fin, v.debut + (r.jour_exigibilite - 1), 'brouillon'
 from exercices e
 join immeubles i on i.id = e.immeuble_id and i.nom = 'Mamelles Tower'
-join reglements r on r.immeuble_id = i.id and r.en_vigueur
+join reglements r on r.immeuble_id = i.id and r.en_vigueur,
+(values
+  ('2e trimestre 2026', date '2026-04-01', date '2026-06-30'),
+  ('3e trimestre 2026', date '2026-07-01', date '2026-09-30'),
+  ('4e trimestre 2026', date '2026-10-01', date '2026-12-31')
+) as v(libelle, debut, fin)
 where e.libelle = 'Exercice 2026';
 
 insert into budget_lignes (periode_id, poste_charge_id, montant)
-select per.id, pc.id, 0
+select per.id, pc.id, coalesce(m.montant, 0)
 from periodes per
 join exercices e on e.id = per.exercice_id
 join immeubles i on i.id = e.immeuble_id and i.nom = 'Mamelles Tower'
 join postes_charges pc on pc.immeuble_id = i.id
-where per.libelle = '4e trimestre 2026';
+left join (values
+  ('Électricité des parties communes', 900000),
+  ('Eau des parties communes', 450000),
+  ('Gardiennage et sécurité', 1200000),
+  ('Nettoyage et entretien général', 600000),
+  ('Entretien des espaces verts', 150000),
+  ('Assurance de l''immeuble', 300000),
+  ('Maintenance du groupe électrogène', 250000),
+  ('Honoraires du syndic', 750000),
+  ('Divers et imprévus', 200000)
+) as m(libelle, montant) on m.libelle = pc.libelle;
+
+-- Génération, puis émission quinze jours avant l'échéance. Mêmes fonctions que
+-- l'application : quotes-parts, références, instantané figé à l'émission.
+select app.generer_appels(per.id)
+from periodes per
+join exercices e on e.id = per.exercice_id
+join immeubles i on i.id = e.immeuble_id and i.nom = 'Mamelles Tower'
+order by per.date_debut;
+
+update appels a
+   set statut = 'emis', date_emission = per.date_echeance - 16
+  from periodes per
+ where per.id = a.periode_id and a.statut = 'brouillon';
+
+update periodes per set statut = 'appele'
+  from exercices e join immeubles i on i.id = e.immeuble_id and i.nom = 'Mamelles Tower'
+ where e.id = per.exercice_id;
+
+-- ---------------------------------------------------------------------
+-- Paiements — par public.enregistrer_paiement, comme une saisie du syndic :
+-- mêmes contrôles (pas de trop-perçu, pas de date future), statut de l'appel
+-- suivi, trace dans `journal`. Part payée par trimestre : 1 = soldé,
+-- 0 = impayé, entre les deux = partiel (arrondi au millier inférieur).
+-- Date : `jour` jours après l'émission.
+-- ---------------------------------------------------------------------
+with v(nom, t2, t3, t4, moyen, jour) as (values
+  ('SCI ALIZE (groupe)',                  1, 1, 1.0, 'virement', 3),
+  ('NDIAYE HOLDING',                      0.5, 0.5, 0.0, 'virement', 2),
+  ('HORIZON IMPORT EXPORT',               1, 1, 1.0, 'virement', 6),
+  ('Awa TOURE',                           1, 1, 1.0, 'wave', 1),
+  ('Claire DUBOIS',                       1, 1, 1.0, 'virement_international', 8),
+  ('Fatou SARR',                          1, 1, 1.0, 'virement_international', 9),
+  ('Mei LIU',                             1, 1, 1.0, 'virement_international', 10),
+  ('MERIDIEN SAS (P. MARTIN)',            1, 1, 0.0, 'virement_international', 7),
+  ('Ibrahima FALL',                       1, 1, 1.0, 'orange_money', 4),
+  ('Aminata CISSE',                       1, 1, 1.0, 'wave', 2),
+  ('Wei CHEN',                            1, 1, 1.0, 'especes', 5),
+  ('Moussa BA',                           1, 1, 0.5, 'wave', 6),
+  ('Deniz KAYA',                          1, 1, 0.3, 'virement_international', 9),
+  ('Jun ZHAO',                            1, 1, 0.6, 'especes', 5),
+  ('Kemal ARSLAN',                        1, 1, 0.0, 'virement_international', 10),
+  ('Emre YILMAZ',                         1, 1, 0.0, 'virement_international', 10),
+  ('Tarik OZTURK',                        1, 0, 0.0, 'virement_international', 10),
+  ('SCI BAOBAB',                          0, 1, 0.0, 'virement', 8),
+  ('Ousmane KANE (remplacement A. SECK)', 0, 1, 0.0, 'orange_money', 7)
+),
+a_payer as (
+  select a.id, a.date_emission + v.jour as le, v.moyen::moyen_paiement as moyen,
+         case when part.valeur = 1 then a.montant_total
+              else floor(a.montant_total * part.valeur / 1000) * 1000 end as montant
+  from appels a
+  join periodes per on per.id = a.periode_id
+  join proprietaires p on p.id = a.proprietaire_id
+  join v on v.nom = p.nom
+  cross join lateral (select case per.libelle
+                               when '2e trimestre 2026' then v.t2
+                               when '3e trimestre 2026' then v.t3
+                               else v.t4 end::numeric as valeur) part
+  where part.valeur > 0
+)
+select public.enregistrer_paiement(id, montant, moyen, le, null)
+from a_payer
+order by le, id;
 
 -- ---------------------------------------------------------------------
 -- Contrôles — le chargement échoue plutôt que de laisser passer un écart
 -- ---------------------------------------------------------------------
 do $$
-declare v_lots int; v_tant int; v_liens int; v_props int; v_anom int; v_budget int;
+declare
+  v_lots int; v_tant int; v_liens int; v_props int; v_anom int; v_budget int;
+  r record;
+  v_total_du numeric; v_retard int; v_arrieres numeric;
 begin
   select count(*), sum(tantiemes) into v_lots, v_tant from lots;
   select count(*) into v_liens from lot_proprietaires;
@@ -366,9 +479,54 @@ begin
   assert v_liens = 62,    format('Attendu 62 rattachements, obtenu %s', v_liens);
   assert v_props = 21,    format('Attendu 21 entités distinctes, obtenu %s', v_props);
   assert v_anom  = 4,     format('Attendu 4 anomalies de contact, obtenu %s', v_anom);
-  assert v_budget = 11,   format('Attendu 11 lignes de budget (une par poste), obtenu %s', v_budget);
-  raise notice 'Chargé : % lots, % tantièmes, % entités (19 comptes après regroupement), % anomalies, % postes de budget',
-    v_lots, v_tant, v_props, v_anom, v_budget;
+  assert v_budget = 33,   format('Attendu 33 lignes de budget (11 postes × 3 trimestres), obtenu %s', v_budget);
+
+  -- Recouvrement, trimestre par trimestre : appelé, encaissé, reste dû, et le
+  -- nombre d'appels par statut. Toute dérive (quote-part, arrondi, paiement
+  -- refusé ou en trop) arrête le chargement.
+  for r in
+    select per.libelle, per.date_echeance,
+           count(a.id) as appels,
+           sum(a.montant_total) as appele,
+           coalesce(sum(pa.paye), 0) as encaisse,
+           count(*) filter (where a.statut = 'solde') as soldes,
+           count(*) filter (where a.statut = 'partiel') as partiels,
+           count(*) filter (where a.statut = 'emis') as impayes
+    from periodes per
+    join appels a on a.periode_id = per.id
+    left join lateral (select sum(montant) as paye from paiements
+                       where appel_id = a.id and statut = 'confirme') pa on true
+    group by per.libelle, per.date_echeance
+    order by per.date_echeance
+  loop
+    assert r.appels = 19 and r.appele = 4800000,
+      format('%s : attendu 19 appels pour 4 800 000 FCFA, obtenu %s pour %s', r.libelle, r.appels, r.appele);
+    assert (r.libelle, r.date_echeance, r.soldes, r.partiels, r.impayes, r.encaisse) in (
+      ('2e trimestre 2026', date '2026-04-01', 16, 1, 2, 4148760.00),
+      ('3e trimestre 2026', date '2026-07-01', 17, 1, 1, 4233240.00),
+      ('4e trimestre 2026', date '2026-10-01',  9, 3, 7, 2967280.00)),
+      format('%s : échéance %s, %s soldés, %s partiels, %s impayés, %s FCFA encaissés — hors du jeu attendu',
+             r.libelle, r.date_echeance, r.soldes, r.partiels, r.impayes, r.encaisse);
+  end loop;
+
+  -- Reste dû total ; arriérés : propriétaires et montant restant dus sur un
+  -- trimestre antérieur au 4e (en retard quelle que soit la date de chargement).
+  select sum(a.montant_total) - coalesce(sum(pa.paye), 0) into v_total_du
+  from appels a
+  left join lateral (select sum(montant) as paye from paiements
+                     where appel_id = a.id and statut = 'confirme') pa on true;
+  select count(distinct a.proprietaire_id), sum(a.montant_total) - coalesce(sum(pa.paye), 0)
+    into v_retard, v_arrieres
+  from appels a join periodes per on per.id = a.periode_id
+  left join lateral (select sum(montant) as paye from paiements
+                     where appel_id = a.id and statut = 'confirme') pa on true
+  where per.libelle <> '4e trimestre 2026' and a.statut in ('emis', 'partiel');
+  assert v_total_du = 3050720.00, format('Attendu 3 050 720 FCFA restant dus, obtenu %s', v_total_du);
+  assert v_retard = 4, format('Attendu 4 propriétaires en retard sur T2 ou T3, obtenu %s', v_retard);
+  assert v_arrieres = 1218000.00, format('Attendu 1 218 000 FCFA d''arriérés sur T2 et T3, obtenu %s', v_arrieres);
+
+  raise notice 'Chargé : % lots, % tantièmes, % entités (19 comptes après regroupement), % anomalies, % lignes de budget, % FCFA restant dus',
+    v_lots, v_tant, v_props, v_anom, v_budget, v_total_du;
 end $$;
 
 commit;

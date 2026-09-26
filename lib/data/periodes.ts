@@ -14,6 +14,8 @@ export interface PeriodeCourante {
 
 // V1 : un immeuble a une période « courante » implicite — la plus
 // récente — pas de sélecteur de période. Voir docs/06-decisions.md.
+// C'est la période qu'on PRÉPARE (Budget, Appels). La période EN COURS du
+// tableau de bord (décision 67) est autre : voir choisirPeriodeEnCours.
 export async function trouverPeriodeCourante(
   immeubleId: string,
 ): Promise<PeriodeCourante | null> {

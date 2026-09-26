@@ -4,6 +4,17 @@ Ce document décrit la **démonstration** : l'application sur Vercel, reliée à
 base fictive : Mamelles Tower, adresses en `example.*`). La base réelle n'y figure pas, et
 **aucune de ses clés ne doit être saisie dans Vercel pour ce déploiement**.
 
+## Migrations : la démonstration suit syndic-dev, la base réelle attend le lancement
+
+Le déploiement de démonstration lit **syndic-dev**. Une nouvelle migration s'applique donc sur
+syndic-dev (`npm run db:appliquer`) avant de déployer la démonstration, **et sur rien d'autre** :
+**aucune migration n'est à appliquer sur la base réelle avant un déploiement de démonstration.**
+La base réelle n'est concernée qu'au **déploiement de production**. L'écart de migrations
+accumulé entre-temps est alors rattrapé **en bloc**, dans la séquence de lancement
+(`docs/08-mise-en-service.md`, avec `npm run db:etat -- --cible=reel` puis
+`npm run db:appliquer -- --cible=reel`, confirmation tapée à la main). Question tranchée le
+26/09/2026 : ne pas la reposer à chaque migration.
+
 Vérifié le 20/09/2026 sur le dépôt : le code de l'application lit **trois** variables, pas plus
 (hors `NODE_ENV`, posée par Vercel).
 

@@ -23,6 +23,12 @@ export const formats = {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     },
+    // Taux de recouvrement : entier, arrondi par défaut par l'appelant (99,6 %
+    // encaissés ne s'affichent jamais « 100 % »).
+    taux: {
+      style: "percent",
+      maximumFractionDigits: 0,
+    },
   },
   dateTime: {
     // Toute date affichée aujourd'hui est à portée juridique ou financière

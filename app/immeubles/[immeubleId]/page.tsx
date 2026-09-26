@@ -15,6 +15,22 @@ import { decrireModification } from "@/lib/parametres/journal";
 import { getValeurs } from "@/lib/i18n/valeurs-serveur";
 import type { ModificationDecrite } from "@/lib/parametres/journal";
 import { ChangementParametre } from "@/components/tableau-de-bord/changement-parametre";
+import {
+  CarteAnciennete,
+  CarteInjoignables,
+  CarteRecouvrement,
+  CarteRetards,
+  PeriodeEnCours,
+} from "@/components/tableau-de-bord/pilotage";
+import { chargerRecouvrement } from "@/lib/data/recouvrement";
+import { sansMentionGroupe } from "@/lib/data/nom-groupe";
+import {
+  calculerRecouvrement,
+  calculerRetards,
+  joursEntre,
+  listerRetards,
+  repartirParTranche,
+} from "@/lib/recouvrement/calcul";
 
 export default async function PageTableauDeBord({
   params,
@@ -25,12 +41,28 @@ export default async function PageTableauDeBord({
   const parametres = await chargerParametres(immeubleId);
   if (!parametres) notFound();
 
-  const [t, valeurs, modifications, role] = await Promise.all([
+  const [t, valeurs, modifications, role, donnees] = await Promise.all([
     getTranslations("TableauDeBord"),
     getValeurs(),
     listerModificationsParametres(immeubleId, 5),
     roleSurOrganisation(parametres.organisationId),
+    chargerRecouvrement(immeubleId),
   ]);
+
+  // Le recouvrement porte sur la période en cours ; le retard et l'ancienneté,
+  // sur tout ce qui reste dû, toutes périodes confondues.
+  const { periode, situations, aujourdhui, bornes } = donnees;
+  const recouvrement = calculerRecouvrement(situations.filter((s) => s.periodeId === periode?.id));
+  const retards = calculerRetards(situations);
+  const destinataireParId = new Map(donnees.destinataires.map((d) => [d.id, d]));
+  const lignesRetard = listerRetards(situations).map((r) => {
+    const d = destinataireParId.get(r.proprietaireId);
+    const nom = d ? (d.estGroupe ? sansMentionGroupe(d.nom) : d.nom) : "";
+    return { ...r, nom };
+  });
+  const repartition = repartirParTranche(situations, bornes);
+  const injoignables = donnees.destinataires.filter((d) => d.injoignable).length;
+  const joursAvantEcheance = periode ? joursEntre(aujourdhui, periode.dateEcheance) : null;
 
   const compteRenseigne = [parametres.titulaire, parametres.banque, parametres.numero].every(
     (champ) => champ.trim().length > 0,
@@ -84,16 +116,33 @@ export default async function PageTableauDeBord({
 
   return (
     <div className="max-w-3xl">
-      <header className="mb-6">
+      <header className="mb-4">
         <h1 className="text-2xl text-encre">{t("titre")}</h1>
       </header>
 
-      <section aria-labelledby="a-traiter">
+      <PeriodeEnCours
+        periode={periode}
+        joursAvantEcheance={joursAvantEcheance}
+        immeubleId={immeubleId}
+      />
+
+      <div className="mt-4">
+        <CarteRecouvrement
+          recouvrement={recouvrement}
+          echeancePassee={joursAvantEcheance !== null && joursAvantEcheance < 0}
+          immeubleId={immeubleId}
+        />
+      </div>
+
+      <section aria-labelledby="a-traiter" className="mt-8">
         <h2 id="a-traiter" className="mb-3 font-serif text-lg text-marque">
           {t("aTraiter")}
         </h2>
 
-        <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <CarteRetards retards={retards} lignes={lignesRetard} immeubleId={immeubleId} />
+          <CarteAnciennete repartition={repartition} immeubleId={immeubleId} />
+          <CarteInjoignables nombre={injoignables} immeubleId={immeubleId} />
           <div className="rounded-card border border-filet bg-surface p-4">
             <h3 className="text-sm font-medium text-encre">{t("paiement.titre")}</h3>
             <p className={`mt-1 text-sm ${compteRenseigne ? "text-encre-2" : "text-alerte"}`}>
@@ -120,7 +169,7 @@ export default async function PageTableauDeBord({
           {enAttente && alerte && situation && (
             <div
               role="alert"
-              className="rounded-card border border-alerte-doux bg-alerte-doux p-4 text-alerte"
+              className="rounded-card border border-alerte-doux bg-alerte-doux p-4 text-alerte md:col-span-2"
             >
               <p className="text-sm font-medium">{t("paiement.enAttenteTitre")}</p>
               <p className="mt-0.5 text-sm">{quand(alerte)}</p>
@@ -147,8 +196,8 @@ export default async function PageTableauDeBord({
         </div>
       </section>
 
-      <section aria-labelledby="historique" className="mt-8">
-        <h2 id="historique" className="mb-3 font-serif text-lg text-marque">
+      <section aria-labelledby="historique" className="mt-10">
+        <h2 id="historique" className="mb-2 text-sm font-medium text-encre-2">
           {t("paiement.historique")}
         </h2>
         {modifications.length === 0 ? (

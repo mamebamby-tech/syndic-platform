@@ -45,6 +45,7 @@ describe("audit RLS — toutes les tables du schéma public", () => {
   let unAutreProprietaireId: string;
   let unPosteChargeId: string;
   let exerciceAuditId: string;
+  let periodeAuditId: string;
   let versionPaiementId: string;
   let proprietaireNoteId: string;
 
@@ -152,6 +153,13 @@ describe("audit RLS — toutes les tables du schéma public", () => {
       [exerciceAuditId],
     );
     const periodeMamelles = periode.rows[0]!;
+    periodeAuditId = periodeMamelles.id;
+    // Une ligne de budget dans CETTE période, encore modifiable : celles du seed
+    // appartiennent à des périodes appelées, dont le budget est verrouillé.
+    await client.query(
+      `insert into budget_lignes (periode_id, poste_charge_id, montant) values ($1, $2, 0)`,
+      [periodeAuditId, unPosteChargeId],
+    );
 
     // --- Deux cabinets fictifs, pour la simulation de rôle ---
     const org = await client.query<{ id: string }>(
@@ -572,6 +580,17 @@ describe("audit RLS — toutes les tables du schéma public", () => {
         if (rows[0]) colonneModifiable.set(t, rows[0].column_name);
       }
 
+      // La ligne copiée par l'INSERT. Un déclencheur BEFORE s'exécute avant le
+      // `with check` : copier une ligne d'appel émis ou de budget verrouillé
+      // (le seed en contient) ferait répondre la règle métier à la place de la
+      // sécurité par ligne, et le test ne prouverait plus rien. Pour ces tables,
+      // on copie une ligne de la période propre à ce test, encore en brouillon.
+      const sourceInsertion: Record<string, string> = {
+        appels: `where id = '${appelId}'`,
+        appel_lignes: `where appel_id = '${appelId}'`,
+        budget_lignes: `where periode_id = '${periodeAuditId}'`,
+      };
+
       const echecs: string[] = [];
       const refuse = (r: { erreur: string | null; lignes: number }) =>
         r.erreur === null ? r.lignes === 0 : REFUS.test(r.erreur);
@@ -585,7 +604,7 @@ describe("audit RLS — toutes les tables du schéma public", () => {
         for (const t of tables) {
           // INSERT d'une copie d'une ligne visible : la sécurité par ligne se
           // prononce AVANT les contraintes ; « rien à copier » n'est pas concluant.
-          const insertion = await essayer(client, `insert into public."${t}" select * from public."${t}" limit 1`);
+          const insertion = await essayer(client, `insert into public."${t}" select * from public."${t}" ${sourceInsertion[t] ?? ""} limit 1`);
           if (!refuse(insertion)) echecs.push(`${t} : INSERT non refusé (${decrire(insertion)})`);
 
           const col = colonneModifiable.get(t);

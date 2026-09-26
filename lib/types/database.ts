@@ -83,6 +83,7 @@ export interface Database {
           compte_numero: string | null;
           compte_bic: string | null;
           moyens_paiement_acceptes: MoyenPaiement[];
+          bornes_anciennete_jours: number[];
           cree_le: string;
         };
         Insert: Partial<Database["public"]["Tables"]["immeubles"]["Row"]> & {

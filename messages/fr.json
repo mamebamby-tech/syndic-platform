@@ -35,7 +35,8 @@
     "registreLots": "Registre des lots",
     "budget": "Budget",
     "appels": "Appels de fonds",
-    "deconnexion": "Se déconnecter"
+    "deconnexion": "Se déconnecter",
+    "comptes": "Comptes copropriétaires"
   },
   "TableauDeBord": {
     "titre": "Tableau de bord",
@@ -76,7 +77,56 @@
     },
     "avantApres": "{avant} → {apres}",
     "vide": "(vide)",
-    "aucun": "aucun"
+    "aucun": "aucun",
+    "periode": {
+      "titre": "Période en cours",
+      "exercicePeriode": "{exercice} · {periode}",
+      "echeance": "Échéance le {date}",
+      "dans": "{jours, plural, =0 {aujourd'hui} one {dans # jour} other {dans # jours}}",
+      "depuis": "{jours, plural, one {dépassée depuis # jour} other {dépassée depuis # jours}}",
+      "aucune": "Aucune période n'est ouverte pour cet immeuble.",
+      "ouvrirBudget": "Préparer le budget"
+    },
+    "recouvrement": {
+      "titre": "Recouvrement de la période en cours",
+      "appele": "Appelé",
+      "encaisse": "Encaissé",
+      "resteDu": "Reste dû sur la période",
+      "taux": "{taux} recouvré",
+      "barre": "Part de l'appelé encaissée",
+      "aucunAppel": "Aucun appel émis pour cette période : rien n'est encore appelé.",
+      "ouvrirAppels": "Ouvrir les appels de fonds",
+      "tropPercu": "Dont {montant} reçus au-delà du montant appelé, non imputés."
+    },
+    "retard": {
+      "titre": "Propriétaires en retard",
+      "nombre": "{nombre, plural, one {# propriétaire} other {# propriétaires}}",
+      "montant": "{montant} échus et impayés, toutes périodes",
+      "aucun": "Aucun propriétaire en retard.",
+      "voir": "Voir tous les comptes en retard",
+      "jours": "{jours, plural, one {# jour} other {# jours}}",
+      "colonneNom": "Propriétaire",
+      "colonneEchu": "Échu",
+      "colonneRetard": "Retard",
+      "autres": "{nombre, plural, one {et # autre} other {et # autres}}"
+    },
+    "anciennete": {
+      "titre": "Ancienneté du reste dû, toutes périodes",
+      "aEchoir": "À échoir",
+      "tranche": "{min} à {max} jours",
+      "audela": "Au-delà de {jours} jours",
+      "aucun": "Aucun reste dû.",
+      "total": "Reste dû, toutes périodes",
+      "appels": "{nombre, plural, =0 {aucun appel} one {# appel} other {# appels}}",
+      "parAppel": "Compté par appel : un propriétaire qui doit sur plusieurs trimestres figure dans plusieurs tranches."
+    },
+    "injoignables": {
+      "titre": "Propriétaires injoignables",
+      "nombre": "{nombre, plural, one {# propriétaire sans aucun canal d'envoi} other {# propriétaires sans aucun canal d'envoi}}",
+      "consigne": "Ni numéro WhatsApp ni adresse électronique valide : aucun appel ne peut leur parvenir. À corriger dans leur fiche.",
+      "aucun": "Chaque propriétaire a au moins un canal d'envoi.",
+      "voir": "Corriger"
+    }
   },
   "Parametres": {
     "titre": "Paramètres de l'immeuble",
@@ -400,5 +450,37 @@
   },
   "Demonstration": {
     "bandeau": "Version de démonstration — données fictives"
+  },
+  "Comptes": {
+    "titre": "Comptes copropriétaires",
+    "resume": "{nombre, plural, =0 {Aucun propriétaire} one {# propriétaire} other {# propriétaires}} · période : {periode}",
+    "aucunePeriode": "aucune",
+    "filtre": {
+      "tous": "Tous",
+      "en-retard": "En retard",
+      "reste-du": "Reste dû sur la période",
+      "injoignables": "Injoignables",
+      "anciennete": "Ancienneté : {tranche}"
+    },
+    "filtresLibelle": "Filtrer la liste",
+    "retirerFiltre": "Retirer le filtre",
+    "colonnes": {
+      "proprietaire": "Propriétaire",
+      "appele": "Appelé sur la période",
+      "paye": "Payé sur la période",
+      "statut": "Statut",
+      "resteDu": "Reste dû, toutes périodes",
+      "retard": "Plus ancien retard"
+    },
+    "statut": {
+      "solde": "Soldé",
+      "partiel": "Partiel",
+      "impaye": "Impayé"
+    },
+    "horsPeriode": "Pas d'appel",
+    "joursRetard": "{jours, plural, one {# jour} other {# jours}}",
+    "injoignable": "Injoignable",
+    "groupe": "groupe",
+    "vide": "Aucun propriétaire ne correspond à ce filtre."
   }
 }
