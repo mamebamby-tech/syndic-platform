@@ -74,11 +74,15 @@ export interface DemandeEnvoi {
 export interface Acces {
   instantane(appelId: string): Promise<InstantaneAppel>;
   pdf(appelId: string): Promise<Uint8Array>;
+  // La date limite qu'annonce ce courriel : celle déjà fixée par un envoi
+  // précédent, sinon aujourd'hui + délai du règlement (décision 73).
+  dateLimite(appelId: string): Promise<string>;
   tracer(trace: {
     appelId: string;
     adresse: string;
     adressePrevue: string | null;
     resultat: ResultatEnvoi;
+    dateLimite: string | null;
   }): Promise<void>;
   transport: Transport;
   // Délai entre deux envois (limite de débit du service).
@@ -115,6 +119,7 @@ export async function envoyerAppels(recap: Recapitulatif, demande: DemandeEnvoi,
     // Si l'aiguillage refuse (adresse du jeu fictif hors démonstration), rien ne
     // part : l'échec est tracé avec l'adresse refusée, et le lot continue.
     let destination: Destination = { adresse: ligne.email, adressePrevue: null };
+    let dateLimite: string | null = null;
     let resultat: ResultatEnvoi;
     try {
       destination = destinationEffective({
@@ -122,6 +127,7 @@ export async function envoyerAppels(recap: Recapitulatif, demande: DemandeEnvoi,
         redirection: demande.redirection,
         adresseDestinataire: ligne.email,
       });
+      dateLimite = await acces.dateLimite(ligne.appelId);
       const courriel = await composerCourrielAppel({
         instantane: await acces.instantane(ligne.appelId),
         destinataireNom: ligne.destinataireNom,
@@ -131,6 +137,7 @@ export async function envoyerAppels(recap: Recapitulatif, demande: DemandeEnvoi,
         expediteur: demande.expediteur,
         repondreA: repondreA ?? null,
         pdf: await acces.pdf(ligne.appelId),
+        dateLimite,
       });
       resultat = await envoyerCourriel(courriel, acces.transport);
     } catch (erreur) {
@@ -141,7 +148,13 @@ export async function envoyerAppels(recap: Recapitulatif, demande: DemandeEnvoi,
         service: acces.transport.nom,
       };
     }
-    await acces.tracer({ appelId: ligne.appelId, adresse: destination.adresse, adressePrevue: destination.adressePrevue, resultat });
+    await acces.tracer({
+      appelId: ligne.appelId,
+      adresse: destination.adresse,
+      adressePrevue: destination.adressePrevue,
+      resultat,
+      dateLimite,
+    });
     if (resultat.reussi) {
       bilan.envoyes.push({ nom: ligne.destinataireNom, reference: ligne.reference, adresse: destination.adresse });
     } else {

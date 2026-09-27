@@ -303,7 +303,7 @@ describe("gabarits de notification — la langue du destinataire", () => {
     });
     expect(rendu.sujet).toBe("Appel de fonds AF-2026-T4-001 — T4 2026");
     expect(lisible(rendu.corps)).toContain("Montant appelé : 1 234 567 FCFA");
-    expect(rendu.corps).toContain("Échéance : 1er octobre 2026");
+    expect(rendu.corps).toContain("Exigible le : 1er octobre 2026");
     expect(rendu.corps).toContain("ENIGMA AFRICA SARL");
   });
 
@@ -342,7 +342,7 @@ describe("gabarits de notification — la langue du destinataire", () => {
     // jamais 10/01/2026 ; la devise reste XOF (FCFA est un usage français),
     // la valeur ne change pas.
     expect(lisible(rendu.corps)).toContain("Montant appelé : XOF 1,234,567");
-    expect(rendu.corps).toContain("Échéance : 1 October 2026");
+    expect(rendu.corps).toContain("Exigible le : 1 October 2026");
   });
 
   it("est marqué brouillon tant que le cabinet n'a pas validé le texte", async () => {

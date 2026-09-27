@@ -17,6 +17,8 @@ export interface ParametresImmeuble {
   bic: string;
   moyens: MoyenPaiement[];
   marchands: Record<string, string>;
+  especesLieu: string;
+  especesHoraires: string;
   codeReference: string;
   formatReference: string;
   // Dernière modification des coordonnées de paiement ; null si jamais renseignées.
@@ -33,6 +35,8 @@ export interface VersionEnAttente {
   bic: string;
   moyens: MoyenPaiement[];
   marchands: Record<string, string>;
+  especesLieu: string;
+  especesHoraires: string;
   proposePar: string | null;
   proposeParLibelle: string | null;
   proposeLe: string;
@@ -45,7 +49,7 @@ export async function chargerVersionEnAttente(immeubleId: string): Promise<Versi
   const { data, error } = await supabase
     .from("coordonnees_paiement_versions")
     .select(
-      "id, compte_titulaire, compte_banque, compte_numero, compte_bic, moyens_paiement_acceptes, numeros_marchands, propose_par, propose_par_libelle, propose_le",
+      "id, compte_titulaire, compte_banque, compte_numero, compte_bic, moyens_paiement_acceptes, numeros_marchands, especes_lieu, especes_horaires, propose_par, propose_par_libelle, propose_le",
     )
     .eq("immeuble_id", immeubleId)
     .eq("statut", "en_attente")
@@ -60,6 +64,8 @@ export async function chargerVersionEnAttente(immeubleId: string): Promise<Versi
     bic: data.compte_bic ?? "",
     moyens: data.moyens_paiement_acceptes,
     marchands: data.numeros_marchands,
+    especesLieu: data.especes_lieu ?? "",
+    especesHoraires: data.especes_horaires ?? "",
     proposePar: data.propose_par,
     proposeParLibelle: data.propose_par_libelle,
     proposeLe: data.propose_le,
@@ -88,7 +94,7 @@ export async function chargerParametres(immeubleId: string): Promise<ParametresI
     supabase
       .from("immeubles")
       .select(
-        "id, organisation_id, compte_titulaire, compte_banque, compte_numero, compte_bic, moyens_paiement_acceptes, numeros_marchands, code_reference, format_reference_appel, compte_modifie_le",
+        "id, organisation_id, compte_titulaire, compte_banque, compte_numero, compte_bic, moyens_paiement_acceptes, numeros_marchands, especes_lieu, especes_horaires, code_reference, format_reference_appel, compte_modifie_le",
       )
       .eq("id", immeubleId)
       .maybeSingle(),
@@ -112,6 +118,8 @@ export async function chargerParametres(immeubleId: string): Promise<ParametresI
     bic: immeuble.compte_bic ?? "",
     moyens: immeuble.moyens_paiement_acceptes,
     marchands: immeuble.numeros_marchands,
+    especesLieu: immeuble.especes_lieu ?? "",
+    especesHoraires: immeuble.especes_horaires ?? "",
     codeReference: immeuble.code_reference ?? "",
     formatReference: immeuble.format_reference_appel,
     compteModifieLe: immeuble.compte_modifie_le,

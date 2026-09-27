@@ -41,7 +41,7 @@ insert into reglements (
   quorum_tantiemes_ratio, seconde_convocation_sans_quorum, ecretement_seuil_ratio,
   demande_convocation_ratio, carence_syndic_jours,
   conseil_syndical_membres, conseil_syndical_exercices,
-  plafond_pouvoirs_mandataire, plafond_depense_syndic, article_retard)
+  plafond_pouvoirs_mandataire, plafond_depense_syndic, article_retard, article_delai_paiement)
 select i.id,
   'Règlement de copropriété SCI Mamelles Tower', date '2025-09-01',
   'Me Tabara Mathurin DIOP, notaire associée, Charge de Dakar XX', true,
@@ -59,7 +59,9 @@ select i.id,
   3, 3,               -- art. 28 : trois copropriétaires, trois exercices
   null,               -- art. 31 : aucun plafond de pouvoirs par mandataire
   null,               -- art. 26-2 a) : plafond de dépense à fixer par l'assemblée
-  'art. 17'           -- article cité par le rappel des conséquences d'un retard
+  'art. 17',          -- article cité par le rappel des conséquences d'un retard
+  'art. 16'           -- article qui fixe le délai de paiement ; imputation : défaut
+                      -- (sommes les plus anciennes), le règlement n'en dispose pas autrement
 from immeubles i where i.nom = 'Mamelles Tower';
 
 insert into motifs_delai_renforce (reglement_id, code, libelle)
@@ -339,7 +341,10 @@ update immeubles
        compte_banque = 'Banque de démonstration (fictive)',
        compte_numero = 'SN000 00000 000000000000 00',
        compte_bic = 'DEMOSNDAXXX',
-       moyens_paiement_acceptes = '{wave,orange_money,virement,virement_international,especes}'
+       moyens_paiement_acceptes = '{wave,orange_money,virement,virement_international,especes}',
+       -- Un moyen annoncé porte ses coordonnées (décision 74) : numéros fictifs.
+       -- Espèces : pas de lieu dédié, l'adresse du cabinet s'applique.
+       numeros_marchands = '{"wave": "+221 70 000 00 11", "orange_money": "+221 77 000 00 12"}'
  where nom = 'Mamelles Tower';
 
 -- ---------------------------------------------------------------------
@@ -399,22 +404,13 @@ left join (values
   ('Divers et imprévus', 200000)
 ) as m(libelle, montant) on m.libelle = pc.libelle;
 
--- Génération, puis émission quinze jours avant l'échéance. Mêmes fonctions que
--- l'application : quotes-parts, références, instantané figé à l'émission.
+-- Génération de tous les appels. Mêmes fonctions que l'application :
+-- quotes-parts, références.
 select app.generer_appels(per.id)
 from periodes per
 join exercices e on e.id = per.exercice_id
 join immeubles i on i.id = e.immeuble_id and i.nom = 'Mamelles Tower'
 order by per.date_debut;
-
-update appels a
-   set statut = 'emis', date_emission = per.date_echeance - 16
-  from periodes per
- where per.id = a.periode_id and a.statut = 'brouillon';
-
-update periodes per set statut = 'appele'
-  from exercices e join immeubles i on i.id = e.immeuble_id and i.nom = 'Mamelles Tower'
- where e.id = per.exercice_id;
 
 -- ---------------------------------------------------------------------
 -- Paiements — par public.enregistrer_paiement, comme une saisie du syndic :
@@ -423,7 +419,9 @@ update periodes per set statut = 'appele'
 -- 0 = impayé, entre les deux = partiel (arrondi au millier inférieur).
 -- Date : `jour` jours après l'émission.
 -- ---------------------------------------------------------------------
-with v(nom, t2, t3, t4, moyen, jour) as (values
+create temp table parts_paiement (nom text, t2 numeric, t3 numeric, t4 numeric, moyen moyen_paiement, jour int)
+  on commit drop;
+insert into parts_paiement values
   ('SCI ALIZE (groupe)',                  1, 1, 1.0, 'virement', 3),
   ('NDIAYE HOLDING',                      0.5, 0.5, 0.0, 'virement', 2),
   ('HORIZON IMPORT EXPORT',               1, 1, 1.0, 'virement', 6),
@@ -442,25 +440,69 @@ with v(nom, t2, t3, t4, moyen, jour) as (values
   ('Emre YILMAZ',                         1, 1, 0.0, 'virement_international', 10),
   ('Tarik OZTURK',                        1, 0, 0.0, 'virement_international', 10),
   ('SCI BAOBAB',                          0, 1, 0.0, 'virement', 8),
-  ('Ousmane KANE (remplacement A. SECK)', 0, 1, 0.0, 'orange_money', 7)
-),
-a_payer as (
-  select a.id, a.date_emission + v.jour as le, v.moyen::moyen_paiement as moyen,
-         case when part.valeur = 1 then a.montant_total
-              else floor(a.montant_total * part.valeur / 1000) * 1000 end as montant
-  from appels a
-  join periodes per on per.id = a.periode_id
-  join proprietaires p on p.id = a.proprietaire_id
-  join v on v.nom = p.nom
-  cross join lateral (select case per.libelle
-                               when '2e trimestre 2026' then v.t2
-                               when '3e trimestre 2026' then v.t3
-                               else v.t4 end::numeric as valeur) part
-  where part.valeur > 0
-)
-select public.enregistrer_paiement(id, montant, moyen, le, null)
-from a_payer
-order by le, id;
+  ('Ousmane KANE (remplacement A. SECK)', 0, 1, 0.0, 'orange_money', 7);
+
+-- Trimestre par trimestre, dans l'ordre du temps : émission quinze jours avant
+-- l'échéance, envoi le jour même, puis les paiements. L'ordre compte :
+-- l'instantané pris à l'émission fige la situation du compte (solde antérieur)
+-- telle qu'elle est à cette date.
+--
+-- L'envoi est SIMULÉ : le cabinet a transmis chaque appel le jour de
+-- l'émission. La date limite de chaque destinataire est donc émission + délai
+-- du règlement (art. 16), comme la fixerait un envoi réel. Seuls les envois par
+-- courriel laissent une trace « appel_envoye » ; les destinataires sans
+-- courriel utilisable ont reçu leur appel autrement (WhatsApp n'est pas branché).
+do $$
+declare
+  per record;
+begin
+  for per in
+    select p.id, p.date_echeance, e.immeuble_id, i.organisation_id
+    from periodes p
+    join exercices e on e.id = p.exercice_id
+    join immeubles i on i.id = e.immeuble_id and i.nom = 'Mamelles Tower'
+    order by p.date_debut
+  loop
+    update appels set statut = 'emis', date_emission = per.date_echeance - 16
+     where periode_id = per.id and statut = 'brouillon';
+
+    insert into dates_limites_appels (appel_id, immeuble_id, envoye_le, date_limite)
+    select a.id, per.immeuble_id, a.date_emission, a.date_emission + app.delai_paiement_appel(a.id)
+    from appels a where a.periode_id = per.id;
+
+    insert into journal (organisation_id, entite, entite_id, action, apres, cree_le)
+    select per.organisation_id, 'appels', a.id, 'appel_envoye',
+           jsonb_build_object('reference', a.reference, 'canal', 'email', 'adresse', p.email,
+                              'adresse_prevue', null, 'redirige', false, 'date_limite', d.date_limite,
+                              'resultat', jsonb_build_object('reussi', true, 'service', 'seed')),
+           a.date_emission::timestamp at time zone 'UTC' + interval '9 hours'
+    from appels a
+    join proprietaires p on p.id = a.proprietaire_id
+    join dates_limites_appels d on d.appel_id = a.id
+    where a.periode_id = per.id and p.email like '%@%';
+
+    perform public.enregistrer_paiement(x.id, x.montant, x.moyen, x.le, null)
+    from (
+      select a.id, a.date_emission + v.jour as le, v.moyen,
+             case when part.valeur = 1 then a.montant_total
+                  else floor(a.montant_total * part.valeur / 1000) * 1000 end as montant
+      from appels a
+      join periodes pe on pe.id = a.periode_id
+      join proprietaires p on p.id = a.proprietaire_id
+      join parts_paiement v on v.nom = p.nom
+      cross join lateral (select case pe.libelle
+                                   when '2e trimestre 2026' then v.t2
+                                   when '3e trimestre 2026' then v.t3
+                                   else v.t4 end as valeur) part
+      where a.periode_id = per.id and part.valeur > 0
+      order by 2, 1
+    ) x;
+  end loop;
+end $$;
+
+update periodes per set statut = 'appele'
+  from exercices e join immeubles i on i.id = e.immeuble_id and i.nom = 'Mamelles Tower'
+ where e.id = per.exercice_id;
 
 -- ---------------------------------------------------------------------
 -- Contrôles — le chargement échoue plutôt que de laisser passer un écart
@@ -527,6 +569,26 @@ begin
   assert v_total_du = 3050720.00, format('Attendu 3 050 720 FCFA restant dus, obtenu %s', v_total_du);
   assert v_retard = 4, format('Attendu 4 propriétaires en retard sur T2 ou T3, obtenu %s', v_retard);
   assert v_arrieres = 1218000.00, format('Attendu 1 218 000 FCFA d''arriérés sur T2 et T3, obtenu %s', v_arrieres);
+
+  -- Dates limites (décision 73) : une par appel, émission + 30 jours (art. 16).
+  for r in
+    select per.libelle, count(*) as n, min(d.date_limite) as dmin, max(d.date_limite) as dmax
+    from dates_limites_appels d join appels a on a.id = d.appel_id join periodes per on per.id = a.periode_id
+    group by per.libelle order by per.libelle
+  loop
+    assert r.n = 19 and r.dmin = r.dmax and (r.libelle, r.dmin) in (
+      ('2e trimestre 2026', date '2026-04-15'),
+      ('3e trimestre 2026', date '2026-07-15'),
+      ('4e trimestre 2026', date '2026-10-15')),
+      format('%s : %s dates limites, du %s au %s — hors du jeu attendu', r.libelle, r.n, r.dmin, r.dmax);
+  end loop;
+
+  -- Situation du compte figée à l'émission (décision 71) : l'appel du 4e
+  -- trimestre de NDIAYE HOLDING porte ses deux moitiés impayées du T2 et du T3.
+  select (a.instantane -> 'situation' ->> 'solde_anterieur')::numeric into v_total_du
+  from appels a join periodes per on per.id = a.periode_id join proprietaires p on p.id = a.proprietaire_id
+  where p.nom = 'NDIAYE HOLDING' and per.libelle = '4e trimestre 2026';
+  assert v_total_du = 1016400.00, format('NDIAYE HOLDING, T4 : solde antérieur attendu 1 016 400, obtenu %s', v_total_du);
 
   raise notice 'Chargé : % lots, % tantièmes, % entités (19 comptes après regroupement), % anomalies, % lignes de budget, % FCFA restant dus',
     v_lots, v_tant, v_props, v_anom, v_budget, v_total_du;

@@ -90,6 +90,8 @@ describe("comparaison des jeux de coordonnées", () => {
       compte_bic: null,
       moyens_paiement_acceptes: ["wave", "virement"],
       numeros_marchands: { wave: "770000000" },
+      especes_lieu: null,
+      especes_horaires: null,
     });
   });
 });

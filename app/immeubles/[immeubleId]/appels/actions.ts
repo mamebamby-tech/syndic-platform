@@ -126,6 +126,11 @@ export async function envoyerLesAppels(_precedent: EtatEnvoiAppels, formData: Fo
           await engendrerDocumentAppel(supabase, appelId);
           return lireDocumentAppel(supabase, appelId);
         },
+        dateLimite: async (appelId) => {
+          const { data, error } = await supabase.rpc("date_limite_si_envoye", { p_appel: appelId });
+          if (error || !data) throw new Error(`Date limite impossible à établir : ${error?.message ?? "appel introuvable"}`);
+          return data;
+        },
         tracer: async (trace) => {
           const { error } = await supabase.rpc("tracer_envoi_appel", {
             p_appel: trace.appelId,
@@ -134,6 +139,7 @@ export async function envoyerLesAppels(_precedent: EtatEnvoiAppels, formData: Fo
             p_adresse_prevue: trace.adressePrevue,
             p_reussi: trace.resultat.reussi,
             p_resultat: trace.resultat,
+            p_date_limite: trace.resultat.reussi ? trace.dateLimite : null,
           });
           if (error) throw new Error(`Trace de l'envoi impossible : ${error.message}`);
         },

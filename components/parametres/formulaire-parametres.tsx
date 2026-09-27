@@ -83,6 +83,7 @@ export function FormulaireParametres({
 
   const erreurBic = etat.erreurs.bic;
   const erreurMoyens = etat.erreurs.moyens;
+  const erreurCompte = etat.erreurs.compte;
   const erreurCode = etat.erreurs.codeReference;
   const erreurFormat = etat.erreurs.formatReference;
 
@@ -163,6 +164,7 @@ export function FormulaireParametres({
             {t("compte.incomplet")}
           </p>
         )}
+        <Erreur code={erreurCompte} />
       </fieldset>
 
       <fieldset className="space-y-3 rounded-card border border-filet bg-surface p-6">
@@ -199,6 +201,39 @@ export function FormulaireParametres({
                     className="h-11 w-48 rounded-control border border-filet bg-surface px-3 tabular-nums text-encre outline-none focus:border-action"
                   />
                   <span className="text-xs text-encre-3">{t("moyens.numeroMarchandAide")}</span>
+                  <Erreur code={etat.erreurs[`marchand_${moyen}` as "marchand_wave"]} />
+                </div>
+              )}
+              {moyen === "especes" && coche && (
+                <div className="grid w-full gap-3 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="especes_lieu" className="mb-1 block text-sm text-encre-2">
+                      {t("moyens.especesLieu")}
+                    </label>
+                    <input
+                      id="especes_lieu"
+                      name="especes_lieu"
+                      defaultValue={parametres.especesLieu}
+                      autoComplete="off"
+                      aria-describedby="especes-lieu-aide"
+                      className={CLASSE_CHAMP}
+                    />
+                    <p id="especes-lieu-aide" className="mt-1 text-xs text-encre-3">
+                      {t("moyens.especesLieuAide")}
+                    </p>
+                  </div>
+                  <div>
+                    <label htmlFor="especes_horaires" className="mb-1 block text-sm text-encre-2">
+                      {t("moyens.especesHoraires")}
+                    </label>
+                    <input
+                      id="especes_horaires"
+                      name="especes_horaires"
+                      defaultValue={parametres.especesHoraires}
+                      autoComplete="off"
+                      className={CLASSE_CHAMP}
+                    />
+                  </div>
                 </div>
               )}
             </div>

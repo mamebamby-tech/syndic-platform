@@ -29,10 +29,24 @@ export interface ComplementPdf {
     delaiPaiementJours: number;
     article: string | null;
   } | null;
+  // Version 3 : null pour un instantané version 2.
+  v3: {
+    // Délai de règlement et imputation des versements (règlement en vigueur).
+    modalites: {
+      delaiPaiementJours: number;
+      articleDelai: string | null;
+      imputation: "plus_anciennes" | "designee_par_le_coproprietaire";
+      articleImputation: string | null;
+    };
+    // Situation du compte à la date d'édition (décision 71).
+    situation: { soldeAnterieur: number; appels: { reference: string; periode: string; reste: number }[] };
+    // Où payer en espèces : lieu dédié, sinon l'adresse du cabinet.
+    especes: { lieu: string | null; horaires: string | null; lieuDuCabinet: boolean };
+  } | null;
 }
 
 export interface InstantaneAppel {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   // Présent pour la version 2 seulement.
   complement: ComplementPdf | null;
   emisLe: string;
@@ -88,7 +102,7 @@ const nombre = (valeur: unknown, chemin: string): number => {
 
 export function lireInstantane(brut: unknown): InstantaneAppel {
   const racine = objet(brut, "instantané");
-  if (racine.version !== 1 && racine.version !== 2) {
+  if (racine.version !== 1 && racine.version !== 2 && racine.version !== 3) {
     throw new InstantaneIllisible(`version ${String(racine.version)} inconnue`);
   }
 
@@ -100,7 +114,7 @@ export function lireInstantane(brut: unknown): InstantaneAppel {
 
   return {
     version: racine.version,
-    complement: racine.version === 2 ? lireComplement(racine, lignes) : null,
+    complement: racine.version === 2 || racine.version === 3 ? lireComplement(racine, lignes) : null,
     emisLe: texte(racine.emis_le, "emis_le"),
     reference: texte(racine.reference, "référence"),
     numero: typeof racine.numero === "number" ? racine.numero : null,
@@ -189,6 +203,42 @@ function lireComplement(racine: Objet, lignes: unknown[]): ComplementPdf {
       requiertMiseEnDemeure: retard.requiert_mise_en_demeure === true,
       delaiPaiementJours: nombre(retard.delai_paiement_jours, "retard.délai"),
       article: texteOuNul(retard.article),
+    },
+    v3: racine.version === 3 ? lireV3(racine) : null,
+  };
+}
+
+function lireV3(racine: Objet): NonNullable<ComplementPdf["v3"]> {
+  const modalites = objet(racine.modalites, "modalités");
+  const situation = objet(racine.situation, "situation");
+  const especes = objet(objet(racine.reglement, "règlement").especes, "espèces");
+  if (!Array.isArray(situation.appels)) throw new InstantaneIllisible("situation.appels absent");
+  const imputation = texte(modalites.imputation, "modalités.imputation");
+  if (imputation !== "plus_anciennes" && imputation !== "designee_par_le_coproprietaire") {
+    throw new InstantaneIllisible(`imputation ${imputation} inconnue`);
+  }
+  return {
+    modalites: {
+      delaiPaiementJours: nombre(modalites.delai_paiement_jours, "modalités.délai"),
+      articleDelai: texteOuNul(modalites.article_delai),
+      imputation,
+      articleImputation: texteOuNul(modalites.article_imputation),
+    },
+    situation: {
+      soldeAnterieur: nombre(situation.solde_anterieur, "situation.solde"),
+      appels: situation.appels.map((brut, index) => {
+        const a = objet(brut, `situation ${index}`);
+        return {
+          reference: texte(a.reference, `situation ${index}.référence`),
+          periode: texte(a.periode, `situation ${index}.période`),
+          reste: nombre(a.reste, `situation ${index}.reste`),
+        };
+      }),
+    },
+    especes: {
+      lieu: texteOuNul(especes.lieu),
+      horaires: texteOuNul(especes.horaires),
+      lieuDuCabinet: especes.lieu_du_cabinet === true,
     },
   };
 }

@@ -53,6 +53,7 @@ function acces() {
   const a: Acces = {
     instantane: async () => instantane,
     pdf: async () => new Uint8Array([37, 80, 68, 70]),
+    dateLimite: async () => "2026-10-27",
     tracer: async (t) => {
       traces.push(t);
     },
@@ -102,12 +103,15 @@ describe("envoi en démonstration", () => {
     expect(envoyes[0]!.texte).toContain("awa.toure@example.com");
     expect(envoyes[0]!.html).toContain("awa.toure@example.com");
     expect(envoyes[0]!.texte).toMatch(/DÉMONSTRATION/);
+    // L'exigibilité (figée) et la date limite de CE destinataire (fixée à l'envoi).
+    expect(envoyes[0]!.texte).toContain("Exigible le : 1er octobre 2026");
+    expect(envoyes[0]!.texte).toContain("À régler au plus tard le : 27 octobre 2026");
     expect(envoyes[0]!.piecesJointes[0]).toMatchObject({ nom: "Appel-MT-2026T4-001.pdf", type: "application/pdf" });
 
     // Chaque envoi est tracé : adresse réelle, destinataire prévu, résultat du service.
-    expect(traces.map((t) => [t.adresse, t.adressePrevue, t.resultat.reussi])).toEqual([
-      ["moi@domaine-reel.sn", "awa.toure@example.com", true],
-      ["moi@domaine-reel.sn", "sci.baobab@example.com", true],
+    expect(traces.map((t) => [t.adresse, t.adressePrevue, t.resultat.reussi, t.dateLimite])).toEqual([
+      ["moi@domaine-reel.sn", "awa.toure@example.com", true, "2026-10-27"],
+      ["moi@domaine-reel.sn", "sci.baobab@example.com", true, "2026-10-27"],
     ]);
     expect(bilan.nonServis.map((x) => [x.nom, x.motif])).toEqual([
       ["Ousmane KANE", "sans_courriel"],

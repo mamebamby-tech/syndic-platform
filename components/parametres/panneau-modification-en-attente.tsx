@@ -35,6 +35,8 @@ export function PanneauModificationEnAttente({
     bic: version.bic,
     moyens: version.moyens,
     marchands: version.marchands,
+    especesLieu: version.especesLieu,
+    especesHoraires: version.especesHoraires,
   };
 
   const texte = (valeur: string) => (valeur.trim().length > 0 ? valeur : t("vide"));
@@ -52,7 +54,9 @@ export function PanneauModificationEnAttente({
           .map(([moyen, numero]) => `${tMoyen(moyen as "wave")} : ${numero}`)
           .join(", ");
 
-  const lignes: { cle: "compte_titulaire" | "compte_banque" | "compte_numero" | "compte_bic" | "moyens_paiement_acceptes" | "numeros_marchands"; avant: string; apres: string; change: boolean }[] = [
+  const lieu = (jeu: JeuCoordonnees) => jeu.especesLieu ?? "";
+  const horaires = (jeu: JeuCoordonnees) => jeu.especesHoraires ?? "";
+  const lignes: { cle: "compte_titulaire" | "compte_banque" | "compte_numero" | "compte_bic" | "moyens_paiement_acceptes" | "numeros_marchands" | "especes_lieu" | "especes_horaires"; avant: string; apres: string; change: boolean }[] = [
     { cle: "compte_titulaire", avant: texte(enVigueur.titulaire), apres: texte(propose.titulaire), change: enVigueur.titulaire.trim() !== propose.titulaire.trim() },
     { cle: "compte_banque", avant: texte(enVigueur.banque), apres: texte(propose.banque), change: enVigueur.banque.trim() !== propose.banque.trim() },
     { cle: "compte_numero", avant: texte(enVigueur.numero), apres: texte(propose.numero), change: enVigueur.numero.trim() !== propose.numero.trim() },
@@ -69,6 +73,8 @@ export function PanneauModificationEnAttente({
       apres: marchands(propose.marchands),
       change: !memesCoordonnees({ ...enVigueur }, { ...enVigueur, marchands: propose.marchands }),
     },
+    { cle: "especes_lieu", avant: texte(lieu(enVigueur)), apres: texte(lieu(propose)), change: lieu(enVigueur).trim() !== lieu(propose).trim() },
+    { cle: "especes_horaires", avant: texte(horaires(enVigueur)), apres: texte(horaires(propose)), change: horaires(enVigueur).trim() !== horaires(propose).trim() },
   ];
 
   const classeBouton = "h-11 rounded-control px-4 text-sm disabled:opacity-50";

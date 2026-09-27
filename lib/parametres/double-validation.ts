@@ -44,6 +44,9 @@ export interface JeuCoordonnees {
   bic: string;
   moyens: readonly string[];
   marchands: Record<string, string>;
+  // Lieu et horaires des espèces (décision 74) ; absents = non renseignés.
+  especesLieu?: string;
+  especesHoraires?: string;
 }
 
 const nul = (valeur: string) => (valeur.trim().length > 0 ? valeur.trim() : null);
@@ -56,6 +59,8 @@ export function instantaneCoordonnees(jeu: JeuCoordonnees) {
     compte_bic: nul(jeu.bic),
     moyens_paiement_acceptes: [...jeu.moyens],
     numeros_marchands: jeu.marchands,
+    especes_lieu: nul(jeu.especesLieu ?? ""),
+    especes_horaires: nul(jeu.especesHoraires ?? ""),
   };
 }
 

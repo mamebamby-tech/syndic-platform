@@ -89,6 +89,8 @@ export default async function PageParametres({
             bic: parametres.bic,
             moyens: parametres.moyens,
             marchands: parametres.marchands,
+            especesLieu: parametres.especesLieu,
+            especesHoraires: parametres.especesHoraires,
           }}
           situation={situation}
         />

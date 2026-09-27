@@ -34,7 +34,7 @@ est une double majorité (§ 4).
 |---|---|---|---|
 | Recouvrement trimestriel, par compte à échoir | 17 | `trimestriel` | `reglements.periodicite_appel` |
 | Provision due le premier jour de chaque trimestre | 16 | 1 | `reglements.jour_exigibilite` |
-| Règlement dans le mois suivant l'envoi de l'arrêté de compte | 16 | 30 jours | `reglements.delai_paiement_jours` |
+| Règlement dans le mois suivant l'envoi de l'arrêté de compte | 16 | 30 jours | `reglements.delai_paiement_jours`, `article_delai_paiement` ; date limite fixée à l'envoi, par destinataire (`dates_limites_appels`, décision 73) |
 | Comptes annuels arrêtés dans les six mois et soumis à l'assemblée | 16 | — | à traiter dans le module Exercices |
 | Le paiement des charges ne vaut pas approbation des comptes | 16 | — | ne jamais clore un exercice sur des encaissements |
 
@@ -68,15 +68,24 @@ façon sans toucher au code.
 
 | Règle | Valeur | Où |
 |---|---|---|
-| Un reste dû est **en retard** dès le lendemain de l'échéance de son appel | `appels.date_echeance` | `lib/recouvrement/calcul.ts` (`estEnRetard`) |
+| Un reste dû est **en retard** dès le lendemain de la **date limite** de son appel : jour de l'envoi + délai de l'art. 16 (décision 73) | `dates_limites_appels.date_limite` | `lib/recouvrement/calcul.ts` (`estEnRetard`) |
 | Tranches d'ancienneté du reste dû : à échoir, 1-30, 31-60, 61-90, au-delà | bornes 30, 60, 90 jours | `immeubles.bornes_anciennete_jours` (défaut `{30,60,90}`) |
 
-Le retard n'entraîne rien d'automatique : ni pénalité, ni mise en demeure. Le
-délai de paiement de l'article 16 (`delai_paiement_jours`, 30 jours) n'est pas
-retranché : la tranche 1-30 correspond précisément à ce mois, et c'est à la
-personne qui relance d'en tenir compte. Des appels trimestriels ont des
-échéances espacées de 90 jours : à une date donnée, seules quelques tranches
-sont peuplées, et c'est normal.
+Le retard n'entraîne rien d'automatique : ni pénalité, ni mise en demeure. Il se
+compte depuis la date limite, jamais depuis l'exigibilité : l'article 16 laisse
+un mois après l'envoi. Un appel pas encore envoyé n'a pas de date limite : il est
+à échoir. Des appels trimestriels ont des dates limites espacées d'environ 90
+jours : à une date donnée, seules quelques tranches sont peuplées, et c'est
+normal.
+
+### Imputation des versements
+
+| Règle | Article | Valeur | Où |
+|---|---|---|---|
+| Un versement s'impute sur les sommes dues les plus anciennes, sauf disposition contraire du règlement | — (règle par défaut) | `plus_anciennes` | `reglements.imputation_paiements`, `article_imputation` |
+
+Imprimée sur l'appel (décision 72). Pas encore appliquée à la saisie des
+paiements : voir le chantier « Imputation des paiements à la saisie ».
 
 Garanties de recouvrement (articles 18 et 27), à surfacer comme actions et non
 à automatiser : hypothèque légale sur le lot, saisie-attribution des loyers du

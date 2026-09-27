@@ -1,4 +1,4 @@
-import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Font, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import { couleurs } from "@/tailwind.config";
 import type { CompositionAppel } from "@/lib/documents/composition-appel";
 
@@ -11,7 +11,12 @@ import type { CompositionAppel } from "@/lib/documents/composition-appel";
 // Polices standard du PDF (Times, Helvetica) : aucun fichier à embarquer. Elles
 // ne connaissent pas l'espace fine insécable qu'Intl met entre les milliers ;
 // elle est remplacée par une espace insécable ordinaire, même rendu.
-const lisible = (texte: string) => texte.replace(/ /g, " ");
+// Typographie française : l'espace devant « : ; ! ? » est insécable, pour que le
+// signe ne passe jamais seul en début de ligne.
+const lisible = (texte: string) => texte.replace(/\u202f/g, "\u00a0").replace(/ ([:;!?])/g, "\u00a0$1");
+
+// Pas de césure : un document juridique ne coupe pas « règle-ment ».
+Font.registerHyphenationCallback((mot) => [mot]);
 
 const styles = StyleSheet.create({
   page: {
@@ -24,7 +29,34 @@ const styles = StyleSheet.create({
   },
   cabinet: { fontFamily: "Times-Roman", fontSize: 16, color: couleurs.marque },
   immeuble: { fontSize: 9, color: couleurs["encre-2"], marginTop: 2 },
-  entete: { borderBottomWidth: 1, borderBottomColor: couleurs.filet, paddingBottom: 8 },
+  entete: {
+    borderBottomWidth: 1,
+    borderBottomColor: couleurs.filet,
+    paddingBottom: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+  },
+  editeLe: { fontSize: 8.5, color: couleurs["encre-2"] },
+  synthese: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: couleurs["action-doux"],
+    borderRadius: 6,
+  },
+  ligneSynthese: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 1.5 },
+  libelleSynthese: { color: couleurs["action-encre"], width: "45%" },
+  valeurSynthese: { width: "55%", textAlign: "right" },
+  fortSynthese: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 10.5,
+    borderTopWidth: 0.5,
+    borderTopColor: couleurs["action-encre"],
+    marginTop: 3,
+    paddingTop: 4,
+  },
+  moyen: { flexDirection: "row", marginTop: 4 },
+  libelleMoyen: { width: 120, fontFamily: "Helvetica-Bold" },
   titre: {
     fontFamily: "Times-Roman",
     fontSize: 14,
@@ -93,12 +125,24 @@ function DocumentPdfAppel({ c }: { c: CompositionAppel }) {
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.entete}>
-          <Text style={styles.cabinet}>{lisible(c.cabinet)}</Text>
-          <Text style={styles.immeuble}>{lisible(c.immeuble)}</Text>
+          <View>
+            <Text style={styles.cabinet}>{lisible(c.cabinet)}</Text>
+            <Text style={styles.immeuble}>{lisible(c.immeuble)}</Text>
+          </View>
+          <Text style={styles.editeLe}>{lisible(c.editeLe)}</Text>
         </View>
 
         <Text style={styles.titre}>{lisible(c.titre)}</Text>
         {c.courtoisie && <Text style={styles.courtoisie}>{lisible(c.courtoisie)}</Text>}
+
+        <View style={styles.synthese} wrap={false}>
+          {c.synthese.map((l, k) => (
+            <View key={k} style={l.fort ? [styles.ligneSynthese, styles.fortSynthese] : styles.ligneSynthese}>
+              <Text style={styles.libelleSynthese}>{lisible(l.libelle)}</Text>
+              <Text style={styles.valeurSynthese}>{lisible(l.valeur)}</Text>
+            </View>
+          ))}
+        </View>
 
         <View style={styles.identification}>
           <View style={styles.bloc}>
@@ -125,17 +169,6 @@ function DocumentPdfAppel({ c }: { c: CompositionAppel }) {
             ) : (
               id.gestionnaire.lignes.map((l, k) => <Text key={k}>{lisible(l)}</Text>)
             )}
-          </View>
-          <View style={styles.blocLarge}>
-            <Text style={styles.etiquette}>{lisible(id.paiement.libelle)}</Text>
-            <Text>{lisible(id.paiement.moyens)}</Text>
-            {id.paiement.compte.map((ligne, k) => (
-              <View key={k} style={styles.ligneCompte}>
-                <Text style={styles.libelleCompte}>{lisible(ligne.libelle)}</Text>
-                <Text>{lisible(ligne.valeur)}</Text>
-              </View>
-            ))}
-            <Text style={styles.explication}>{lisible(id.paiement.consigne)}</Text>
           </View>
         </View>
 
@@ -174,6 +207,40 @@ function DocumentPdfAppel({ c }: { c: CompositionAppel }) {
             <Text style={styles.total}>{lisible(c.total.montant)}</Text>
           </View>
           <Text style={styles.exigibilite}>{lisible(c.exigibilite)}</Text>
+        </View>
+
+        <View wrap={false}>
+          <Text style={styles.intertitre}>{lisible(c.situation.titre)}</Text>
+          <Text style={{ marginTop: 4 }}>{lisible(c.situation.introduction)}</Text>
+          {c.situation.lignes.map((l, k) => (
+            <View key={k} style={styles.ligneTotal}>
+              <Text>{lisible(l.libelle)}</Text>
+              <Text>{lisible(l.montant)}</Text>
+            </View>
+          ))}
+          {c.situation.total && (
+            <View style={styles.ligneTotal}>
+              <Text style={styles.total}>{lisible(c.situation.total.libelle)}</Text>
+              <Text style={styles.total}>{lisible(c.situation.total.montant)}</Text>
+            </View>
+          )}
+          <Text style={styles.explication}>{lisible(c.situation.mention)}</Text>
+        </View>
+
+        <View wrap={false}>
+          <Text style={styles.intertitre}>{lisible(c.paiement.titre)}</Text>
+          {c.paiement.moyens.map((m, k) => (
+            <View key={k} style={styles.moyen}>
+              <Text style={styles.libelleMoyen}>{lisible(m.libelle)}</Text>
+              <View>
+                {m.coordonnees.map((ligne, j) => (
+                  <Text key={j}>{lisible(ligne)}</Text>
+                ))}
+              </View>
+            </View>
+          ))}
+          <Text style={{ marginTop: 6 }}>{lisible(c.modalites.imputation)}</Text>
+          <Text style={styles.explication}>{lisible(c.paiement.consigne)}</Text>
         </View>
 
         <View wrap={false}>

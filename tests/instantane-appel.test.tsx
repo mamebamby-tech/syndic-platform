@@ -197,7 +197,7 @@ describe("instantané d'un appel émis — le document ne change plus", () => {
         const e = await ligne(b.id);
         expect(e.statut).toBe("emis");
         expect(e.instantane).not.toBeNull();
-        expect(e.instantane.version).toBe(2);
+        expect(e.instantane.version).toBe(3);
         const { rows } = await client.query(`select $1::date = current_date as ok`, [e.date_emission]);
         expect(rows[0].ok).toBe(true);
       });
@@ -425,7 +425,13 @@ describe("instantané d'un appel émis — le document ne change plus", () => {
       await dansSauvegarde(async () => {
         const b = await premierBrouillon();
         await emettre(b.id);
-        await client.query(`update immeubles set compte_numero = null where id = $1`, [immeubleId]);
+        // Effacer le compte suppose de ne plus annoncer les virements : un moyen
+        // annoncé sans ses coordonnées est refusé (décision 74).
+        await client.query(
+          `update immeubles set compte_numero = null, moyens_paiement_acceptes = '{especes}', numeros_marchands = '{}'
+           where id = $1`,
+          [immeubleId],
+        );
         expect((await essayer(client, `select public.enregistrer_paiement($1, 1, 'especes', current_date)`, [b.id])).erreur).toBeNull();
         expect((await ligne(b.id)).statut).toBe("partiel");
       });
@@ -561,7 +567,13 @@ describe("instantané d'un appel émis — le document ne change plus", () => {
   describe("l'émission passe par la base, sans coordonnées elle échoue", () => {
     it("sans coordonnées bancaires, rien n'est émis ni figé", async () => {
       await dansSauvegarde(async () => {
-        await client.query(`update immeubles set compte_numero = null where id = $1`, [immeubleId]);
+        // Espèces seulement : le compte peut être incomplet sans qu'un moyen soit
+        // annoncé sans coordonnées ; c'est l'émission qui refuse, faute de compte.
+        await client.query(
+          `update immeubles set compte_numero = null, moyens_paiement_acceptes = '{especes}', numeros_marchands = '{}'
+           where id = $1`,
+          [immeubleId],
+        );
         const b = await premierBrouillon();
         const r = await essayer(client, `update appels set statut = 'emis' where id = $1`, [b.id]);
         expect(r.erreur).toMatch(/coordonnées bancaires/);

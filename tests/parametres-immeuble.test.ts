@@ -410,7 +410,7 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
       await dansTransaction(async () => {
         await agirComme(gestionnaire, async () => {
           await client.query(
-            `update immeubles set moyens_paiement_acceptes = '{wave,virement}',
+            `update immeubles set moyens_paiement_acceptes = '{wave,especes}',
                numeros_marchands = '{"wave": "770000000"}' where id = $1`,
             [immeubleId],
           );
@@ -418,7 +418,7 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
         await client.query("reset role");
         const [ligne] = await journal("coordonnees_paiement_modifiees");
         expect(ligne.avant.moyens_paiement_acceptes).toEqual([]);
-        expect(ligne.apres.moyens_paiement_acceptes).toEqual(["wave", "virement"]);
+        expect(ligne.apres.moyens_paiement_acceptes).toEqual(["wave", "especes"]);
         expect(ligne.avant.numeros_marchands).toEqual({});
         expect(ligne.apres.numeros_marchands).toEqual({ wave: "770000000" });
       });
@@ -463,6 +463,8 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
           "compte_bic",
           "compte_numero",
           "compte_titulaire",
+          "especes_horaires",
+          "especes_lieu",
           "moyens_paiement_acceptes",
           "numeros_marchands",
         ]);
@@ -749,13 +751,16 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
       });
 
     it("les virements internationaux exigent un code SWIFT", async () => {
-      await refuse(`update immeubles set moyens_paiement_acceptes = '{virement_international}' where id = $1`, /immeubles_swift_requis/);
+      // Compte complet : seule l'absence du code SWIFT est en cause (décision 74
+      // exige par ailleurs le compte pour tout virement).
+      const compte = `compte_titulaire = 'T', compte_banque = 'B', compte_numero = 'N'`;
+      await refuse(`update immeubles set ${compte}, moyens_paiement_acceptes = '{virement_international}' where id = $1`, /immeubles_swift_requis/);
       await refuse(
-        `update immeubles set moyens_paiement_acceptes = '{virement_international}', compte_bic = '   ' where id = $1`,
+        `update immeubles set ${compte}, moyens_paiement_acceptes = '{virement_international}', compte_bic = '   ' where id = $1`,
         /immeubles_swift_requis|immeubles_bic_format/,
       );
       await accepte(
-        `update immeubles set moyens_paiement_acceptes = '{virement_international}', compte_bic = 'ABCDSNDA' where id = $1`,
+        `update immeubles set ${compte}, moyens_paiement_acceptes = '{virement_international}', compte_bic = 'ABCDSNDA' where id = $1`,
       );
     });
 
@@ -777,18 +782,20 @@ describe("paramètres de l'immeuble — droits, trace, contraintes", () => {
       await refuse(`update immeubles set numeros_marchands = '{"wave": "770000000"}' where id = $1`, /numeros_marchands_valides/);
       // Moyen qui ne porte pas de numéro marchand :
       await refuse(
-        `update immeubles set moyens_paiement_acceptes = '{virement}', numeros_marchands = '{"virement": "1"}' where id = $1`,
+        `update immeubles set compte_titulaire = 'T', compte_banque = 'B', compte_numero = 'N',
+           moyens_paiement_acceptes = '{virement}', numeros_marchands = '{"virement": "1"}' where id = $1`,
         /numeros_marchands_valides/,
       );
       // Clé inconnue, valeur vide ou d'un autre type, structure qui n'est pas un objet :
       await refuse(`update immeubles set numeros_marchands = '{"bitcoin": "1"}' where id = $1`, /numeros_marchands_valides|invalid input/);
       await refuse(
         `update immeubles set moyens_paiement_acceptes = '{wave}', numeros_marchands = '{"wave": ""}' where id = $1`,
-        /numeros_marchands_valides/,
+        // Numéro vide : refusé aussi comme moyen sans coordonnées (décision 74).
+        /numeros_marchands_valides|immeubles_moyens_avec_coordonnees/,
       );
       await refuse(
         `update immeubles set moyens_paiement_acceptes = '{wave}', numeros_marchands = '{"wave": 770000000}' where id = $1`,
-        /numeros_marchands_valides/,
+        /numeros_marchands_valides|immeubles_moyens_avec_coordonnees/,
       );
       await refuse(`update immeubles set numeros_marchands = '[]'::jsonb where id = $1`, /numeros_marchands_valides/);
     });

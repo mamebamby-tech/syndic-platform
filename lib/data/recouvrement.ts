@@ -83,9 +83,9 @@ export async function chargerRecouvrement(immeubleId: string): Promise<DonneesRe
   const periodeIds = (periodes ?? []).map((p) => p.id);
 
   const destinataireIds = destinataires.map((d) => d.id);
-  const [appels, paiements] =
+  const [appels, paiements, datesLimites] =
     periodeIds.length === 0 || destinataireIds.length === 0
-      ? [[], []]
+      ? [[], [], []]
       : await Promise.all([
           toutesLesPages(
             (de, a) =>
@@ -107,7 +107,19 @@ export async function chargerRecouvrement(immeubleId: string): Promise<DonneesRe
                 .range(de, a),
             "des paiements",
           ),
+          // Fixées à l'envoi (décision 73) : le retard se compte depuis elles.
+          toutesLesPages(
+            (de, a) =>
+              supabase
+                .from("dates_limites_appels")
+                .select("appel_id, date_limite")
+                .eq("immeuble_id", immeubleId)
+                .order("appel_id")
+                .range(de, a),
+            "des dates limites",
+          ),
         ]);
+  const dateLimiteParAppel = new Map(datesLimites.map((d) => [d.appel_id, d.date_limite]));
 
   const situations = situationDesAppels(
     appels.map((a) => ({
@@ -116,6 +128,7 @@ export async function chargerRecouvrement(immeubleId: string): Promise<DonneesRe
       periodeId: a.periode_id,
       montantTotal: Number(a.montant_total),
       dateEcheance: a.date_echeance,
+      dateLimite: dateLimiteParAppel.get(a.id) ?? null,
       statut: a.statut,
     })),
     paiements.map((p) => ({ appelId: p.appel_id, montant: Number(p.montant), statut: p.statut })),

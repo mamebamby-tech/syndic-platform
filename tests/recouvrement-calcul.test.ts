@@ -22,6 +22,8 @@ const BORNES = [30, 60, 90];
 const AUJOURDHUI = "2026-09-26";
 
 let numero = 0;
+// Sauf mention contraire, la date limite est prise égale à la date donnée : les
+// cas de tranches se lisent ainsi directement en jours de retard.
 const appel = (partiel: Partial<AppelRecouvrement> = {}): AppelRecouvrement => ({
   id: `a${++numero}`,
   proprietaireId: "p1",
@@ -30,6 +32,7 @@ const appel = (partiel: Partial<AppelRecouvrement> = {}): AppelRecouvrement => (
   dateEcheance: "2026-10-01",
   statut: "emis",
   ...partiel,
+  dateLimite: partiel.dateLimite !== undefined ? partiel.dateLimite : (partiel.dateEcheance ?? "2026-10-01"),
 });
 const paiement = (appelId: string, montant: number, statut: PaiementRecouvrement["statut"] = "confirme") => ({
   appelId,
@@ -197,6 +200,23 @@ describe("tranches d'ancienneté", () => {
 });
 
 describe("propriétaires en retard", () => {
+  it("se comptent depuis la date limite fixée à l'envoi, pas depuis l'exigibilité", () => {
+    // Exigible le 1er septembre, envoyé le 10 : date limite le 10 octobre.
+    const exigibleEnvoye = appel({ dateEcheance: "2026-09-01", dateLimite: "2026-10-10" });
+    const situations = situationDesAppels([exigibleEnvoye], [], AUJOURDHUI);
+    expect(calculerRetards(situations)).toEqual({ nombreProprietaires: 0, montant: 0 });
+    expect(repartirParTranche(situations, BORNES)[0]).toMatchObject({ montant: 100_000, nombreAppels: 1 });
+  });
+
+  it("un appel jamais envoyé n'a pas de date limite : à échoir, jamais en retard", () => {
+    const jamaisEnvoye = appel({ dateEcheance: "2026-04-01", dateLimite: null });
+    const situations = situationDesAppels([jamaisEnvoye], [], AUJOURDHUI);
+    expect(situations[0]!.joursDepuisDateLimite).toBeNull();
+    expect(calculerRetards(situations).nombreProprietaires).toBe(0);
+    expect(repartirParTranche(situations, BORNES)[0]!.tranche.cle).toBe("a-echoir");
+    expect(repartirParTranche(situations, BORNES)[0]!.montant).toBe(100_000);
+  });
+
   it("en retard dès le lendemain de l'échéance, pas le jour même", () => {
     const aujourdhuiEcheance = appel({ proprietaireId: "p1", dateEcheance: "2026-09-26" });
     const hierEcheance = appel({ proprietaireId: "p2", dateEcheance: "2026-09-25" });

@@ -51,10 +51,10 @@ describe("PDF et envoi des appels — base Mamelles Tower", () => {
     await client.end();
   });
 
-  describe("instantané version 2", () => {
+  describe("instantané version 3", () => {
     it("porte tout ce que le PDF imprime : lots, clé et base totale, gestionnaire, conséquences du retard", () => {
       const i = lireInstantane(instantaneBrut);
-      expect(i.version).toBe(2);
+      expect(i.version).toBe(3);
       expect(i.complement).toMatchObject({
         destinataireEmail: "contact.partage@example.com",
         immeubleCodeReference: "MT",
@@ -63,6 +63,37 @@ describe("PDF et envoi des appels — base Mamelles Tower", () => {
         retard: { tauxPenalite: 0.1, penalitePar: "mensuel", requiertMiseEnDemeure: true, article: "art. 17" },
       });
       for (const l of i.complement!.lignes) expect(l).toMatchObject({ cleLibelle: "Tantièmes de l'état descriptif", baseTotale: 10_000 });
+      // Moussa BA a soldé T2 et T3 avant l'émission du T4 : aucun solde antérieur.
+      expect(i.complement!.v3).toEqual({
+        modalites: { delaiPaiementJours: 30, articleDelai: "art. 16", imputation: "plus_anciennes", articleImputation: null },
+        situation: { soldeAnterieur: 0, appels: [] },
+        especes: { lieu: "Cité Keur Damel, Villa N°17, Dakar", horaires: null, lieuDuCabinet: true },
+      });
+    });
+
+    it("la situation du compte est figée à l'émission : NDIAYE HOLDING doit encore la moitié du T2 et du T3", async () => {
+      const { rows } = await client.query(
+        `select a.instantane from appels a join periodes per on per.id = a.periode_id join proprietaires p on p.id = a.proprietaire_id
+         where p.nom = 'NDIAYE HOLDING' and per.libelle = '4e trimestre 2026'`,
+      );
+      const i = lireInstantane(rows[0].instantane);
+      expect(i.complement!.v3!.situation).toEqual({
+        soldeAnterieur: 1_016_400,
+        appels: [
+          { reference: "MT-2026T2-003", periode: "2e trimestre 2026", reste: 508_200 },
+          { reference: "MT-2026T3-003", periode: "3e trimestre 2026", reste: 508_200 },
+        ],
+      });
+      // Jamais reporté dans l'appel (décision 71) : le montant reste celui de la période.
+      expect(i.reportAnterieur).toBe(0);
+      expect(i.montantTotal).toBe(1_015_200);
+      const c = composerAppel(i, await documentFr());
+      const lisible = (s: string) => s.replace(/[\u00a0\u202f]/g, " ");
+      expect(c.synthese.map((l) => [l.libelle, lisible(l.valeur)]).slice(4)).toEqual([
+        ["Solde antérieur restant dû au 15 septembre 2026", "1 016 400 FCFA"],
+        ["Total restant dû au 15 septembre 2026", "2 031 600 FCFA"],
+      ]);
+      expect(c.situation.total && lisible(c.situation.total.montant)).toBe("2 031 600 FCFA");
     });
   });
 
@@ -75,6 +106,27 @@ describe("PDF et envoi des appels — base Mamelles Tower", () => {
       expect(lisible(c.detail.lots[0]!.lignes[0]!.base)).toBe("149 / 10 000");
       expect(lisible(c.total.montant)).toBe("71 520 FCFA");
       expect(c.exigibilite).toBe("Somme exigible le 1er octobre 2026");
+      expect(c.editeLe).toBe("Édité le 15 septembre 2026");
+      // Le PDF porte l'exigibilité et la règle du délai, jamais une date limite calculée.
+      expect(c.synthese.map((l) => l.libelle)).toEqual([
+        "Montant appelé pour la période",
+        "Période",
+        "Exigible le",
+        "À régler",
+        "Solde antérieur restant dû au 15 septembre 2026",
+        "Total restant dû au 15 septembre 2026",
+      ]);
+      expect(c.synthese[3]!.valeur).toBe("dans les 30 jours suivant l'envoi du présent appel (art. 16 du règlement de copropriété)");
+      expect(c.situation.introduction).toBe("Aucun solde antérieur à cette date : seul le présent appel reste dû.");
+      expect(c.modalites.imputation).toBe("Tout versement s'impute sur les sommes dues les plus anciennes.");
+      // Chaque moyen annoncé, avec ses coordonnées.
+      expect(c.paiement.moyens.map((m) => [m.libelle, m.coordonnees])).toEqual([
+        ["Wave", ["Numéro marchand : +221 70 000 00 11"]],
+        ["Orange Money", ["Numéro marchand : +221 77 000 00 12"]],
+        ["Virement", ["Titulaire : Syndicat des copropriétaires Mamelles Tower (fictif)", "Banque : Banque de démonstration (fictive)", "Compte : SN000 00000 000000000000 00"]],
+        ["Virement international", ["Compte : SN000 00000 000000000000 00", "BIC / SWIFT : DEMOSNDAXXX"]],
+        ["Espèces", ["Au cabinet : Cité Keur Damel, Villa N°17, Dakar"]],
+      ]);
       expect(lisible(c.retard.texte)).toBe(
         "Le règlement de copropriété (art. 17) prévoit que les sommes non réglées à l'échéance portent intérêt au taux de 10 % par mois de retard, après mise en demeure restée infructueuse.",
       );
@@ -94,6 +146,12 @@ describe("PDF et envoi des appels — base Mamelles Tower", () => {
       expect(composerAppel(autre, await documentFr()).retard.texte.replace(/[  ]/g, " ")).toBe(
         "Le règlement de copropriété prévoit que les sommes non réglées à l'échéance portent intérêt au taux de 1,5 % par an de retard.",
       );
+    });
+
+    it("refuse d'imprimer un moyen annoncé sans ses coordonnées", async () => {
+      const i = lireInstantane(instantaneBrut);
+      const sansNumero = { ...i, reglement: { ...i.reglement, numerosMarchands: {} } };
+      expect(() => composerAppel(sansNumero, { version: VERSION_OPPOSABLE, messages: {} as never })).toThrow(/sans coordonnées/);
     });
 
     it("refuse un instantané version 1 plutôt que de compléter avec des données courantes", async () => {
@@ -194,6 +252,58 @@ describe("PDF et envoi des appels — base Mamelles Tower", () => {
       await commeUtilisateur(client, gestionnaire, async () => {
         const id = (await client.query(`select public.tracer_envoi_appel($1, 'email', 'x@domaine-reel.sn', null, false, '{}') as id`, [appelId])).rows[0].id;
         expect((await client.query(`select action from journal where id = $1`, [id])).rows[0].action).toBe("appel_envoi_echoue");
+      });
+    });
+
+    describe("date limite de règlement (décision 73)", () => {
+      // Le seed a simulé l'envoi : on repart d'un appel jamais envoyé, dans la
+      // transaction du test (annulée en sortie).
+      const jamaisEnvoye = () =>
+        enProprietaire(client, () => client.query(`delete from dates_limites_appels where appel_id = $1`, [appelId]));
+      const dateLimite = async () =>
+        (await client.query(`select date_limite::text as d, envoye_le::text as e from dates_limites_appels where appel_id = $1`, [appelId])).rows[0];
+      const dansTrenteJours = async () => (await client.query(`select (current_date + 30)::text as d`)).rows[0].d as string;
+
+      it("fixée au premier envoi réussi : jour de l'envoi + délai du règlement", async () => {
+        await commeUtilisateur(client, gestionnaire, async () => {
+          await jamaisEnvoye();
+          const annoncee = (await client.query(`select public.date_limite_si_envoye($1)::text as d`, [appelId])).rows[0].d;
+          expect(annoncee).toBe(await dansTrenteJours());
+          await client.query(`select public.tracer_envoi_appel($1, 'email', 'x@domaine-reel.sn', null, true, '{}', $2)`, [appelId, annoncee]);
+          expect((await dateLimite()).d).toBe(annoncee);
+        });
+      });
+
+      it("un renvoi ne la déplace pas", async () => {
+        await commeUtilisateur(client, gestionnaire, async () => {
+          // Le seed l'a fixée au 15 octobre (envoi le 15 septembre).
+          expect((await dateLimite()).d).toBe("2026-10-15");
+          expect((await client.query(`select public.date_limite_si_envoye($1)::text as d`, [appelId])).rows[0].d).toBe("2026-10-15");
+          await client.query(`select public.tracer_envoi_appel($1, 'email', 'x@domaine-reel.sn', null, true, '{}', '2026-10-15')`, [appelId]);
+          expect((await dateLimite()).d).toBe("2026-10-15");
+        });
+      });
+
+      it("un échec d'envoi ne la fixe pas", async () => {
+        await commeUtilisateur(client, gestionnaire, async () => {
+          await jamaisEnvoye();
+          await client.query(`select public.tracer_envoi_appel($1, 'email', 'x@domaine-reel.sn', null, false, '{}')`, [appelId]);
+          expect(await dateLimite()).toBeUndefined();
+        });
+      });
+
+      it("une date annoncée qui n'est pas celle du règlement est refusée : ce qui est stocké est ce qui a été écrit", async () => {
+        await commeUtilisateur(client, gestionnaire, async () => {
+          await jamaisEnvoye();
+          const r = await essayer(client, `select public.tracer_envoi_appel($1, 'email', 'x@domaine-reel.sn', null, true, '{}', '2030-01-01')`, [appelId]);
+          expect(r.erreur).toMatch(/différente de celle du règlement/);
+        });
+      });
+
+      it("un lecteur ne peut pas connaître d'avance une date limite qu'il ne peut pas fixer", async () => {
+        await commeUtilisateur(client, lecteur, async () => {
+          expect((await client.query(`select public.date_limite_si_envoye($1) as d`, [appelId])).rows[0]?.d ?? null).toBeNull();
+        });
       });
     });
 

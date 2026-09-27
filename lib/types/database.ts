@@ -86,6 +86,8 @@ export interface Database {
           bornes_anciennete_jours: number[];
           gestionnaire_nom: string | null;
           gestionnaire_email: string | null;
+          especes_lieu: string | null;
+          especes_horaires: string | null;
           cree_le: string;
         };
         Insert: Partial<Database["public"]["Tables"]["immeubles"]["Row"]> & {
@@ -124,6 +126,9 @@ export interface Database {
           plafond_pouvoirs_mandataire: number | null;
           plafond_depense_syndic: number | null;
           article_retard: string | null;
+          article_delai_paiement: string | null;
+          imputation_paiements: "plus_anciennes" | "designee_par_le_coproprietaire";
+          article_imputation: string | null;
           cree_le: string;
         };
         Insert: Partial<Database["public"]["Tables"]["reglements"]["Row"]> & {
@@ -411,12 +416,29 @@ export interface Database {
           compte_bic: string | null;
           moyens_paiement_acceptes: MoyenPaiement[];
           numeros_marchands: Record<string, string>;
+          especes_lieu: string | null;
+          especes_horaires: string | null;
           propose_par: string | null;
           propose_par_libelle: string | null;
           propose_le: string;
           decide_par: string | null;
           decide_par_libelle: string | null;
           decide_le: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      // Date limite de règlement, fixée au premier envoi réussi (décision 73).
+      // Écrite par public.tracer_envoi_appel seulement.
+      dates_limites_appels: {
+        Row: {
+          appel_id: string;
+          immeuble_id: string;
+          envoye_le: string;
+          date_limite: string;
+          fixee_par: string | null;
+          fixee_le: string;
         };
         Insert: never;
         Update: never;
@@ -471,7 +493,12 @@ export interface Database {
           p_adresse_prevue: string | null;
           p_reussi: boolean;
           p_resultat: Record<string, unknown>;
+          p_date_limite?: string | null;
         };
+        Returns: string;
+      };
+      date_limite_si_envoye: {
+        Args: { p_appel: string };
         Returns: string;
       };
       generer_appels: {
@@ -505,6 +532,8 @@ export interface Database {
           p_bic: string | null;
           p_moyens: MoyenPaiement[];
           p_numeros: Record<string, string>;
+          p_especes_lieu?: string | null;
+          p_especes_horaires?: string | null;
         };
         Returns: string;
       };

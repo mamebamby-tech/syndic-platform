@@ -32,6 +32,8 @@ const version: VersionEnAttente = {
   bic: "ABCDSNDA",
   moyens: ["virement", "wave"],
   marchands: { wave: "77 000 00 00" },
+  especesLieu: "",
+  especesHoraires: "",
   proposePar: "alice",
   proposeParLibelle: "alice@example.com",
   proposeLe: "2026-10-01T09:30:00Z",

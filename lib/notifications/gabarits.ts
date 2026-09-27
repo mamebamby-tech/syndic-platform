@@ -26,6 +26,9 @@ export interface ChargeUtileAppelEmis {
   montant: number;
   // Date de calendrier `AAAA-MM-JJ`, telle que stockée dans `appels`.
   echeance: string;
+  // Date limite de règlement de CE destinataire, fixée à l'envoi (décision 73).
+  // Courriel seulement ; absente d'un message qui n'annonce pas l'envoi.
+  dateLimite?: string;
 }
 
 export type DemandeNotification = {
@@ -85,6 +88,7 @@ export async function rendreNotification(
         ...demande.chargeUtile,
         montant: affichage.montant(demande.chargeUtile.montant),
         echeance: affichage.dateJuridique(demande.chargeUtile.echeance),
+        dateLimite: demande.chargeUtile.dateLimite ? affichage.dateJuridique(demande.chargeUtile.dateLimite) : "",
       };
 
       return demande.canal === "email"

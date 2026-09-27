@@ -18,6 +18,9 @@ export interface AppelRecouvrement {
   periodeId: string;
   montantTotal: number;
   dateEcheance: string;
+  // Date limite de règlement, fixée à l'envoi (décision 73) ; null tant que
+  // l'appel n'a pas été envoyé : il ne peut pas être en retard.
+  dateLimite: string | null;
   statut: StatutAppel;
 }
 
@@ -41,8 +44,10 @@ export interface SituationAppel {
   // ailleurs est une décision (avoir, remboursement), pas un calcul.
   tropPercu: number;
   dateEcheance: string;
-  // Jours écoulés depuis l'échéance : 0 le jour même, négatif avant.
-  joursDepuisEcheance: number;
+  dateLimite: string | null;
+  // Jours écoulés depuis la DATE LIMITE (décision 73) : 0 le jour même, négatif
+  // avant ; null pour un appel pas encore envoyé (sans date limite).
+  joursDepuisDateLimite: number | null;
 }
 
 // Nombre de jours entre deux dates de calendrier (AAAA-MM-JJ), en UTC comme
@@ -79,7 +84,8 @@ export function situationDesAppels(
         resteDu: enFrancs(du - impute),
         tropPercu: enFrancs(verse - impute),
         dateEcheance: a.dateEcheance,
-        joursDepuisEcheance: joursEntre(a.dateEcheance, aujourdhui),
+        dateLimite: a.dateLimite,
+        joursDepuisDateLimite: a.dateLimite === null ? null : joursEntre(a.dateLimite, aujourdhui),
       };
     });
 }
@@ -165,7 +171,8 @@ export interface MontantParTranche {
 }
 
 // Le reste dû de chaque appel, toutes périodes confondues, rangé selon les
-// jours écoulés depuis son échéance.
+// jours écoulés depuis sa date limite ; « à échoir » avant elle, ou tant que
+// l'appel n'est pas envoyé.
 export function repartirParTranche(
   situations: SituationAppel[],
   bornes: readonly number[],
@@ -174,7 +181,7 @@ export function repartirParTranche(
   const cumul = new Map(tranches.map((t) => [t.cle, { centimes: 0, appels: 0 }]));
   for (const s of situations) {
     if (s.resteDu <= 0) continue;
-    const c = cumul.get(trancheDe(s.joursDepuisEcheance, tranches).cle)!;
+    const c = cumul.get(trancheDe(s.joursDepuisDateLimite ?? 0, tranches).cle)!;
     c.centimes += enCentimes(s.resteDu);
     c.appels += 1;
   }
@@ -184,9 +191,11 @@ export function repartirParTranche(
   });
 }
 
-// En retard : un reste dû dont l'échéance est passée (au moins un jour).
+// En retard : un reste dû dont la date limite de règlement est passée (au moins
+// un jour). L'exigibilité ne suffit pas : le règlement laisse un délai après
+// l'envoi (décision 73).
 export function estEnRetard(s: SituationAppel): boolean {
-  return s.resteDu > 0 && s.joursDepuisEcheance >= 1;
+  return s.resteDu > 0 && (s.joursDepuisDateLimite ?? 0) >= 1;
 }
 
 export interface Retards {
@@ -208,7 +217,7 @@ export function listerRetards(situations: SituationAppel[]): ProprietaireEnRetar
   for (const s of situations.filter(estEnRetard)) {
     const p = parProprietaire.get(s.proprietaireId) ?? { centimes: 0, jours: 0 };
     p.centimes += enCentimes(s.resteDu);
-    p.jours = Math.max(p.jours, s.joursDepuisEcheance);
+    p.jours = Math.max(p.jours, s.joursDepuisDateLimite ?? 0);
     parProprietaire.set(s.proprietaireId, p);
   }
   return [...parProprietaire]
@@ -278,8 +287,8 @@ export function comptesParProprietaire(
       },
       resteDuTotal: calculerRecouvrement(dues).resteDu,
       resteDuEchu: calculerRecouvrement(echues).resteDu,
-      clesTranches: [...new Set(dues.map((s) => trancheDe(s.joursDepuisEcheance, tranches).cle))],
-      joursRetardMax: echues.length === 0 ? null : Math.max(...echues.map((s) => s.joursDepuisEcheance)),
+      clesTranches: [...new Set(dues.map((s) => trancheDe(s.joursDepuisDateLimite ?? 0, tranches).cle))],
+      joursRetardMax: echues.length === 0 ? null : Math.max(...echues.map((s) => s.joursDepuisDateLimite ?? 0)),
     });
   }
   return comptes;

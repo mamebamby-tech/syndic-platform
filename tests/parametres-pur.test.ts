@@ -161,10 +161,24 @@ describe("validation des paramètres", () => {
     expect(r.valeurs?.numeros_marchands).toEqual({});
   });
 
-  it("un numéro marchand est facultatif : moyen accepté sans numéro est valide", () => {
-    const r = validerParametres(saisie({ moyens: ["wave"], marchands: { wave: "  ", orange_money: "" } }));
-    expect(r.erreurs).toEqual({});
-    expect(r.valeurs?.numeros_marchands).toEqual({});
+  // Décision 74 : un moyen annoncé sans ses coordonnées n'est pas un moyen.
+  it("un numéro marchand est obligatoire : moyen mobile accepté sans numéro est refusé", () => {
+    const r = validerParametres(saisie({ moyens: ["wave", "orange_money"], marchands: { wave: "  ", orange_money: "" } }));
+    expect(r.valeurs).toBeNull();
+    expect(r.erreurs).toEqual({ marchand_wave: "numero_marchand_requis", marchand_orange_money: "numero_marchand_requis" });
+  });
+
+  it("un virement annoncé exige le compte complet du syndicat", () => {
+    const r = validerParametres(saisie({ moyens: ["virement"], titulaire: "Syndicat", banque: "", numero: "" }));
+    expect(r.erreurs.compte).toBe("compte_requis");
+  });
+
+  it("les espèces n'exigent rien : le lieu dédié est facultatif, et n'est gardé que si elles sont acceptées", () => {
+    const avec = validerParametres(saisie({ moyens: ["especes"], especesLieu: " Loge du gardien ", especesHoraires: "9 h – 12 h" }));
+    expect(avec.erreurs).toEqual({});
+    expect(avec.valeurs).toMatchObject({ especes_lieu: "Loge du gardien", especes_horaires: "9 h – 12 h" });
+    const sans = validerParametres(saisie({ moyens: [], especesLieu: "Loge du gardien" }));
+    expect(sans.valeurs).toMatchObject({ especes_lieu: null, especes_horaires: null });
   });
 
   it("refuse un code d'immeuble ou un format invalide, avec l'erreur du bon champ", () => {

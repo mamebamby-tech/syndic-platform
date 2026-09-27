@@ -31,7 +31,14 @@ export interface LigneJournal {
 
 export type Changement =
   | {
-      champ: "compte_titulaire" | "compte_banque" | "compte_bic" | "code_reference" | "format_reference_appel";
+      champ:
+        | "compte_titulaire"
+        | "compte_banque"
+        | "compte_bic"
+        | "especes_lieu"
+        | "especes_horaires"
+        | "code_reference"
+        | "format_reference_appel";
       nature: "texte";
       avant: string | null;
       apres: string | null;
@@ -124,6 +131,9 @@ export function decrireModification(ligne: LigneJournal): ModificationDecrite | 
         apres: masques(apres.numeros_marchands),
       });
     }
+    // Absents des entrées antérieures au 27/09/2026 : lus comme non renseignés.
+    texteChange("especes_lieu");
+    texteChange("especes_horaires");
   } else {
     texteChange("code_reference");
     texteChange("format_reference_appel");

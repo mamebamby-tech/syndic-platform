@@ -47,6 +47,8 @@ export async function enregistrerParametres(
       wave: texte(formData, "marchand_wave"),
       orange_money: texte(formData, "marchand_orange_money"),
     },
+    especesLieu: texte(formData, "especes_lieu"),
+    especesHoraires: texte(formData, "especes_horaires"),
     codeReference: texte(formData, "codeReference"),
     formatReference: texte(formData, "formatReference"),
   });
@@ -88,6 +90,8 @@ export async function enregistrerParametres(
     bic: courants.bic,
     moyens: courants.moyens,
     marchands: courants.marchands,
+    especesLieu: courants.especesLieu,
+    especesHoraires: courants.especesHoraires,
   };
   const propose = {
     titulaire: valeurs.compte_titulaire ?? "",
@@ -96,6 +100,8 @@ export async function enregistrerParametres(
     bic: valeurs.compte_bic ?? "",
     moyens: valeurs.moyens_paiement_acceptes,
     marchands: valeurs.numeros_marchands as Record<string, string>,
+    especesLieu: valeurs.especes_lieu ?? "",
+    especesHoraires: valeurs.especes_horaires ?? "",
   };
   const paiementChange = !memesCoordonnees(enVigueur, propose);
 
@@ -108,12 +114,16 @@ export async function enregistrerParametres(
       p_bic: valeurs.compte_bic,
       p_moyens: valeurs.moyens_paiement_acceptes,
       p_numeros: propose.marchands,
+      p_especes_lieu: valeurs.especes_lieu,
+      p_especes_horaires: valeurs.especes_horaires,
     });
     if (error) {
       if (error.code === "42501") return { statut: "erreur", erreurs: { general: "acces_refuse" } };
       if (error.code === "23514") {
         if (error.message.includes("versions_swift_requis")) return { statut: "erreur", erreurs: { bic: "swift_requis" } };
         if (error.message.includes("versions_bic_format")) return { statut: "erreur", erreurs: { bic: "bic_invalide" } };
+        // Filet : la validation ci-dessus l'empêche déjà, la base a le dernier mot.
+        if (error.message.includes("versions_moyens_avec_coordonnees")) return { statut: "erreur", erreurs: { moyens: "numero_marchand_requis" } };
       }
       // 22023 « aucun changement » : ne devrait pas arriver (comparé plus haut) ; sans effet.
       if (error.code !== "22023") return { statut: "erreur", erreurs: { general: "enregistrement_impossible" } };

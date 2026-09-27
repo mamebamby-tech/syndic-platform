@@ -91,6 +91,8 @@ export default async function PageTableauDeBord({
           bic: parametres.bic,
           moyens: parametres.moyens,
           marchands: parametres.marchands,
+          especesLieu: parametres.especesLieu,
+          especesHoraires: parametres.especesHoraires,
         }),
         apres: instantaneCoordonnees({
           titulaire: enAttente.titulaire,
@@ -99,6 +101,8 @@ export default async function PageTableauDeBord({
           bic: enAttente.bic,
           moyens: enAttente.moyens,
           marchands: enAttente.marchands,
+          especesLieu: enAttente.especesLieu,
+          especesHoraires: enAttente.especesHoraires,
         }),
       })
     : null;

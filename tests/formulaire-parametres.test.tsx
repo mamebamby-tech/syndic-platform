@@ -21,6 +21,8 @@ const parametres: ParametresImmeuble = {
   bic: "",
   moyens: [],
   marchands: {},
+  especesLieu: "",
+  especesHoraires: "",
   codeReference: "MT",
   formatReference: "{code}-{annee}{periode}-{seq}",
   compteModifieLe: null,

@@ -28,17 +28,22 @@ export interface SaisieParametres {
   bic: string;
   moyens: string[];
   marchands: Record<MoyenMarchand, string>;
+  // Lieu et horaires des espèces : facultatifs (défaut : adresse du cabinet).
+  especesLieu?: string;
+  especesHoraires?: string;
   codeReference: string;
   formatReference: string;
 }
 
-export type Champ = "bic" | "moyens" | "codeReference" | "formatReference";
+export type Champ = "bic" | "moyens" | "compte" | "marchand_wave" | "marchand_orange_money" | "codeReference" | "formatReference";
 
 // Les codes d'erreur sont traduits par l'écran (messages `Parametres.erreurs.*`).
 export type CodeErreur =
   | "bic_invalide"
   | "swift_requis"
   | "moyen_inconnu"
+  | "numero_marchand_requis"
+  | "compte_requis"
   | "code_invalide"
   | "code_deja_utilise"
   | "format_invalide"
@@ -52,6 +57,8 @@ export interface ValeursParametres {
   compte_bic: string | null;
   moyens_paiement_acceptes: MoyenPaiement[];
   numeros_marchands: Partial<Record<MoyenMarchand, string>>;
+  especes_lieu: string | null;
+  especes_horaires: string | null;
   code_reference: string;
   format_reference_appel: string;
 }
@@ -92,7 +99,18 @@ export function validerParametres(saisie: SaisieParametres): {
   for (const moyen of MOYENS_AVEC_NUMERO_MARCHAND) {
     const numero = vide(saisie.marchands[moyen] ?? "");
     if (moyens.includes(moyen) && numero !== null) marchands[moyen] = numero;
+    // Un moyen annoncé sans ses coordonnées n'est pas un moyen (décision 74).
+    if (moyens.includes(moyen) && numero === null) erreurs[`marchand_${moyen}`] = "numero_marchand_requis";
   }
+
+  // Virement, virement international : le compte du syndicat, complet.
+  const compteComplet = [saisie.titulaire, saisie.banque, saisie.numero].every((champ) => vide(champ) !== null);
+  if ((moyens.includes("virement") || moyens.includes("virement_international")) && !compteComplet) {
+    erreurs.compte = "compte_requis";
+  }
+
+  // Le lieu des espèces n'a de sens que si les espèces sont acceptées.
+  const especes = moyens.includes("especes");
 
   const code = saisie.codeReference.trim().toUpperCase();
   if (!codeReferenceValide(code)) erreurs.codeReference = "code_invalide";
@@ -111,6 +129,8 @@ export function validerParametres(saisie: SaisieParametres): {
       compte_bic: bic,
       moyens_paiement_acceptes: [...moyens],
       numeros_marchands: marchands,
+      especes_lieu: especes ? vide(saisie.especesLieu ?? "") : null,
+      especes_horaires: especes ? vide(saisie.especesHoraires ?? "") : null,
       code_reference: code,
       format_reference_appel: format,
     },

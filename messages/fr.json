@@ -73,7 +73,9 @@
       "moyens_paiement_acceptes": "Moyens acceptés",
       "numeros_marchands": "Numéros marchands",
       "code_reference": "Code de l'immeuble",
-      "format_reference_appel": "Format de la référence"
+      "format_reference_appel": "Format de la référence",
+      "especes_lieu": "Lieu de paiement en espèces",
+      "especes_horaires": "Horaires de paiement en espèces"
     },
     "avantApres": "{avant} → {apres}",
     "vide": "(vide)",
@@ -81,9 +83,9 @@
     "periode": {
       "titre": "Période en cours",
       "exercicePeriode": "{exercice} · {periode}",
-      "echeance": "Échéance le {date}",
+      "echeance": "Exigible le {date}",
       "dans": "{jours, plural, =0 {aujourd'hui} one {dans # jour} other {dans # jours}}",
-      "depuis": "{jours, plural, one {dépassée depuis # jour} other {dépassée depuis # jours}}",
+      "depuis": "{jours, plural, one {exigible depuis # jour} other {exigible depuis # jours}}",
       "aucune": "Aucune période n'est ouverte pour cet immeuble.",
       "ouvrirBudget": "Préparer le budget"
     },
@@ -148,9 +150,12 @@
     },
     "moyens": {
       "titre": "Moyens de paiement acceptés",
-      "aide": "Cochez les moyens que le syndicat accepte. Ils figurent sur l'appel.",
+      "aide": "Cochez les moyens que le syndicat accepte. Chacun figure sur l'appel avec ses coordonnées : un moyen annoncé sans elles est refusé.",
       "numeroMarchand": "Numéro marchand",
-      "numeroMarchandAide": "Facultatif."
+      "numeroMarchandAide": "Obligatoire.",
+      "especesLieu": "Lieu de paiement en espèces",
+      "especesLieuAide": "Facultatif : à défaut, l'adresse du cabinet figure sur l'appel.",
+      "especesHoraires": "Horaires"
     },
     "reference": {
       "titre": "Référence des appels",
@@ -199,7 +204,9 @@
       "code_deja_utilise": "Ce code est déjà utilisé par un autre immeuble du cabinet.",
       "format_invalide": "Format invalide : il doit contenir le jeton seq, sans espace ni caractère spécial.",
       "acces_refuse": "Vous n'avez pas le droit de modifier ces paramètres.",
-      "enregistrement_impossible": "Enregistrement impossible. Réessayez, ou contactez l'administrateur."
+      "enregistrement_impossible": "Enregistrement impossible. Réessayez, ou contactez l'administrateur.",
+      "numero_marchand_requis": "Le numéro marchand est obligatoire : un moyen annoncé sans ses coordonnées n'est pas un moyen.",
+      "compte_requis": "Le virement exige le compte complet du syndicat (titulaire, banque, numéro)."
     },
     "gestionnaire": {
       "titre": "Interlocuteur des copropriétaires",
@@ -446,7 +453,42 @@
         "inconnu": "Les conséquences d'un retard sont celles que prévoit le règlement de copropriété."
       },
       "page": "Page {page} sur {total}",
-      "editeAvec": "Document édité avec {produit}"
+      "editeAvec": "Document édité avec {produit}",
+      "editeLe": "Édité le {date}",
+      "synthese": {
+        "montant": "Montant appelé pour la période",
+        "periode": "Période",
+        "exigibilite": "Exigible le",
+        "reglement": "À régler",
+        "soldeAnterieur": "Solde antérieur restant dû au {date}",
+        "totalDu": "Total restant dû au {date}"
+      },
+      "modalites": {
+        "delai": "dans les {jours} jours suivant l'envoi du présent appel{article, select, aucun {} other { ({article} du règlement de copropriété)}}",
+        "imputation": "{regle, select, plus_anciennes {Tout versement s'impute sur les sommes dues les plus anciennes} other {Tout versement s'impute sur les sommes que le copropriétaire désigne ; à défaut, sur les plus anciennes}}{article, select, aucun {} other { ({article} du règlement de copropriété)}}."
+      },
+      "situation": {
+        "titre": "Situation de votre compte au {date}",
+        "seulePeriode": "Le présent appel ne porte que sur la période {periode}. Les sommes restant dues sur les appels précédents s'y ajoutent :",
+        "ligne": "Appel {reference} — {periode}",
+        "anterieur": "Solde antérieur restant dû",
+        "present": "Présent appel",
+        "total": "Total restant dû au {date}",
+        "aucun": "Aucun solde antérieur à cette date : seul le présent appel reste dû.",
+        "mention": "Les paiements reçus après le {date} n'y figurent pas. Relevé de compte à jour auprès de votre gestionnaire."
+      },
+      "paiement": {
+        "titre": "Modes de paiement",
+        "titulaire": "Titulaire : {valeur}",
+        "banque": "Banque : {valeur}",
+        "numero": "Compte : {valeur}",
+        "bic": "BIC / SWIFT : {valeur}",
+        "numeroMarchand": "Numéro marchand : {valeur}",
+        "ordre": "À l'ordre de : {valeur}",
+        "lieu": "Lieu : {valeur}",
+        "lieuCabinet": "Au cabinet : {valeur}",
+        "horaires": "Horaires : {valeur}"
+      }
     },
     "moyens": {
       "wave": "Wave",
@@ -462,7 +504,7 @@
     "appel_emis": {
       "email": {
         "sujet": "Appel de fonds {reference} — {periode}",
-        "corps": "Bonjour,\n\nVotre appel de fonds {reference} pour la période {periode} est disponible.\n\nMontant appelé : {montant}\nÉchéance : {echeance}\n\n{cabinet}"
+        "corps": "Bonjour,\n\nVotre appel de fonds {reference} pour la période {periode} est disponible.\n\nMontant appelé : {montant}\nExigible le : {echeance}\nÀ régler au plus tard le : {dateLimite}\n\n{cabinet}"
       },
       "whatsapp": {
         "corps": "{cabinet} : votre appel de fonds {reference} ({periode}) est disponible. Montant : {montant}, échéance le {echeance}."

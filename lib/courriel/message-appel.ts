@@ -27,6 +27,8 @@ export interface OptionsMessageAppel {
   // Adresse de réponse : celle du cabinet ; en démonstration, la redirection.
   repondreA: string | null;
   pdf: Uint8Array;
+  // Date limite de règlement de ce destinataire (AAAA-MM-JJ), fixée à l'envoi.
+  dateLimite: string;
 }
 
 export async function composerCourrielAppel(o: OptionsMessageAppel): Promise<Courriel> {
@@ -41,6 +43,7 @@ export async function composerCourrielAppel(o: OptionsMessageAppel): Promise<Cou
       periode: i.periode.libelle,
       montant: i.montantTotal,
       echeance: i.dateEcheance,
+      dateLimite: o.dateLimite,
     },
   });
   // Un gabarit que le cabinet n'a pas validé ne part pas vers un vrai

@@ -30,18 +30,44 @@ export interface LotDocument {
   sousTotal: string;
 }
 
+export interface LigneSynthese {
+  libelle: string;
+  valeur: string;
+  // Le total restant dû : mis en évidence.
+  fort?: boolean;
+}
+
+export interface MoyenDocument {
+  libelle: string;
+  coordonnees: string[];
+}
+
 export interface CompositionAppel {
   langue: string;
   courtoisie: string | null;
   cabinet: string;
   immeuble: string;
   titre: string;
+  // « Édité le 15 septembre 2026 » : date du document, en toutes lettres.
+  editeLe: string;
+  // En tête de la première page : ce qu'il faut savoir avant le détail.
+  synthese: LigneSynthese[];
+  // Situation du compte à la date d'édition (décision 71) : jamais absente.
+  situation: {
+    titre: string;
+    introduction: string;
+    lignes: { libelle: string; montant: string }[];
+    total: { libelle: string; montant: string } | null;
+    mention: string;
+  };
+  // Chaque moyen annoncé avec ses coordonnées (décision 74).
+  paiement: { titre: string; moyens: MoyenDocument[]; consigne: string };
+  modalites: { delai: string; imputation: string };
   identification: {
     destinataire: { libelle: string; nom: string; email: string | null };
     lots: { libelle: string; lignes: string[] };
     gestionnaire: { libelle: string; lignes: string[]; aRenseigner: boolean; aRenseignerTexte: string };
     references: { libelle: string; lignes: string[] };
-    paiement: { libelle: string; moyens: string; compte: { libelle: string; valeur: string }[]; consigne: string };
   };
   detail: {
     titre: string;
@@ -65,12 +91,13 @@ export interface CompositionAppel {
 const enCentimes = (montant: number) => Math.round(montant * 100);
 
 export function composerAppel(i: InstantaneAppel, document: DocumentLocalise): CompositionAppel {
-  if (i.version !== 2 || !i.complement) {
+  if (i.version !== 3 || !i.complement?.v3) {
     throw new DocumentImpossible(
-      "l'instantané de cet appel est antérieur à la version 2 et ne contient pas tout ce que le PDF imprime",
+      "l'instantané de cet appel est antérieur à la version 3 et ne contient pas tout ce que le PDF imprime",
     );
   }
   const c = i.complement;
+  const v3 = c.v3!;
   if (c.lignes.length !== i.lignes.length) throw new DocumentImpossible("lignes de l'instantané incohérentes");
 
   // L'argent ne se devine pas : le détail doit redonner, au centime, le total figé.
@@ -80,20 +107,6 @@ export function composerAppel(i: InstantaneAppel, document: DocumentLocalise): C
   }
 
   const { t, format, valeurs, version } = outilsDocument(document);
-  const moyen = (m: string) => {
-    const numero = i.reglement.numerosMarchands[m];
-    return numero ? t("moyens.avecNumero", { moyen: t(`moyens.${m}` as "moyens.wave"), numero }) : t(`moyens.${m}` as "moyens.wave");
-  };
-
-  const compte = i.reglement.compte
-    ? [
-        { libelle: t("Appel.reglement.titulaire"), valeur: i.reglement.compte.titulaire },
-        { libelle: t("Appel.reglement.banque"), valeur: i.reglement.compte.banque },
-        { libelle: t("Appel.reglement.numero"), valeur: i.reglement.compte.numero },
-        ...(i.reglement.compte.bic ? [{ libelle: t("Appel.reglement.bic"), valeur: i.reglement.compte.bic }] : []),
-      ]
-    : [{ libelle: t("Appel.reglement.compte"), valeur: t("Appel.reglement.compteARenseigner") }];
-
   // Détail regroupé par lot, dans l'ordre de l'instantané.
   const groupes: { numero: number; indices: number[] }[] = [];
   i.lignes.forEach((ligne, index) => {
@@ -125,6 +138,51 @@ export function composerAppel(i: InstantaneAppel, document: DocumentLocalise): C
       })
     : t("Appel.retard.inconnu");
 
+  // La date du document : celle de l'émission, où il a été engendré.
+  const dateEdition = valeurs.dateJuridique(i.dateEmission ?? i.emisLe);
+  const article = (x: string | null) => x ?? "aucun";
+  const delai = t("Appel.modalites.delai", {
+    jours: v3.modalites.delaiPaiementJours,
+    article: article(v3.modalites.articleDelai),
+  });
+
+  const soldeCentimes = enCentimes(v3.situation.soldeAnterieur);
+  const totalDu = valeurs.montant((soldeCentimes + enCentimes(i.montantTotal)) / 100);
+
+  const compteSyndicat = i.reglement.compte;
+  const coordonneesMoyen = (m: string): string[] => {
+    const ligne = (cle: string, valeur: string | null | undefined) =>
+      valeur ? [t(`Appel.paiement.${cle}` as "Appel.paiement.titulaire", { valeur })] : [];
+    switch (m) {
+      case "virement":
+        return [...ligne("titulaire", compteSyndicat?.titulaire), ...ligne("banque", compteSyndicat?.banque), ...ligne("numero", compteSyndicat?.numero)];
+      case "virement_international":
+        return [...ligne("numero", compteSyndicat?.numero), ...ligne("bic", compteSyndicat?.bic)];
+      case "cheque":
+        return ligne("ordre", compteSyndicat?.titulaire);
+      case "wave":
+      case "orange_money":
+        return ligne("numeroMarchand", i.reglement.numerosMarchands[m]);
+      case "especes":
+        return [
+          ...ligne(v3.especes.lieuDuCabinet ? "lieuCabinet" : "lieu", v3.especes.lieu),
+          ...ligne("horaires", v3.especes.horaires),
+        ];
+      default:
+        return [];
+    }
+  };
+  const moyens: MoyenDocument[] = i.reglement.moyens.map((m) => ({
+    libelle: t(`moyens.${m}` as "moyens.wave"),
+    coordonnees: coordonneesMoyen(m),
+  }));
+  // Un moyen annoncé sans ses coordonnées n'est pas un moyen (décision 74) : la
+  // base refuse d'émettre dans ce cas ; le document refuse aussi de l'imprimer.
+  const sansCoordonnees = moyens.filter((m) => m.coordonnees.length === 0);
+  if (sansCoordonnees.length > 0) {
+    throw new DocumentImpossible(`moyen de paiement sans coordonnées : ${sansCoordonnees.map((m) => m.libelle).join(", ")}`);
+  }
+
   const piedDePage = [
     i.organisation.nom,
     i.organisation.adresse,
@@ -141,6 +199,45 @@ export function composerAppel(i: InstantaneAppel, document: DocumentLocalise): C
     cabinet: i.organisation.nom,
     immeuble: [i.immeuble.nom, c.immeubleAdresse, c.immeubleVille].filter(Boolean).join(" — "),
     titre: t("Appel.titre", { periode: i.periode.libelle }),
+    editeLe: t("Appel.editeLe", { date: dateEdition }),
+    synthese: [
+      { libelle: t("Appel.synthese.montant"), valeur: valeurs.montant(i.montantTotal) },
+      { libelle: t("Appel.synthese.periode"), valeur: i.periode.libelle },
+      { libelle: t("Appel.synthese.exigibilite"), valeur: valeurs.dateJuridique(i.dateEcheance) },
+      { libelle: t("Appel.synthese.reglement"), valeur: delai },
+      { libelle: t("Appel.synthese.soldeAnterieur", { date: dateEdition }), valeur: valeurs.montant(v3.situation.soldeAnterieur) },
+      { libelle: t("Appel.synthese.totalDu", { date: dateEdition }), valeur: totalDu, fort: true },
+    ],
+    situation: {
+      titre: t("Appel.situation.titre", { date: dateEdition }),
+      introduction:
+        v3.situation.appels.length > 0
+          ? t("Appel.situation.seulePeriode", { periode: i.periode.libelle })
+          : t("Appel.situation.aucun"),
+      lignes: [
+        ...v3.situation.appels.map((a) => ({
+          libelle: t("Appel.situation.ligne", { reference: a.reference, periode: a.periode }),
+          montant: valeurs.montant(a.reste),
+        })),
+        ...(v3.situation.appels.length > 0
+          ? [
+              { libelle: t("Appel.situation.anterieur"), montant: valeurs.montant(v3.situation.soldeAnterieur) },
+              { libelle: t("Appel.situation.present"), montant: valeurs.montant(i.montantTotal) },
+            ]
+          : []),
+      ],
+      total:
+        v3.situation.appels.length > 0 ? { libelle: t("Appel.situation.total", { date: dateEdition }), montant: totalDu } : null,
+      mention: t("Appel.situation.mention", { date: dateEdition }),
+    },
+    paiement: { titre: t("Appel.paiement.titre"), moyens, consigne: t("Appel.reglement.consigne") },
+    modalites: {
+      delai,
+      imputation: t("Appel.modalites.imputation", {
+        regle: v3.modalites.imputation,
+        article: article(v3.modalites.articleImputation),
+      }),
+    },
     identification: {
       destinataire: {
         libelle: t("Appel.identification.destinataire"),
@@ -172,15 +269,6 @@ export function composerAppel(i: InstantaneAppel, document: DocumentLocalise): C
             nom: i.immeuble.nom,
           }),
         ],
-      },
-      paiement: {
-        libelle: t("Appel.identification.paiement"),
-        moyens:
-          i.reglement.moyens.length > 0
-            ? format.list(i.reglement.moyens.map(moyen), { type: "unit", style: "long" })
-            : t("Appel.reglement.moyensARenseigner"),
-        compte,
-        consigne: t("Appel.reglement.consigne"),
       },
     },
     detail: {

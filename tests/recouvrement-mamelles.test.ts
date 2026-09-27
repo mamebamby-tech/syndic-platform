@@ -36,9 +36,10 @@ describe("recouvrement — jeu Mamelles Tower au 26/09/2026", () => {
     // Les périodes du seed seulement : d'autres fichiers de tests en créent.
     const { rows: appels } = await client.query(
       `select a.id, a.proprietaire_id as "proprietaireId", a.periode_id as "periodeId",
-              a.montant_total::float8 as "montantTotal", a.date_echeance::text as "dateEcheance", a.statut,
-              per.libelle
+              a.montant_total::float8 as "montantTotal", a.date_echeance::text as "dateEcheance",
+              d.date_limite::text as "dateLimite", a.statut, per.libelle
        from appels a join periodes per on per.id = a.periode_id
+       left join dates_limites_appels d on d.appel_id = a.id
        join exercices e on e.id = per.exercice_id
        where e.immeuble_id = $1 and e.libelle = 'Exercice 2026'`,
       [immeubleId],
@@ -69,21 +70,23 @@ describe("recouvrement — jeu Mamelles Tower au 26/09/2026", () => {
     expect(calculerRetards(situations)).toEqual({ nombreProprietaires: 4, montant: 1_218_000 });
   });
 
-  it("la carte des retards : NDIAYE HOLDING d'abord (178 jours, le plus gros montant), Tarik OZTURK en dernier (87 jours)", async () => {
+  // Retard compté depuis la date limite (décision 73) : envoi le jour de
+  // l'émission + 30 jours — 15 avril pour le T2, 15 juillet pour le T3.
+  it("la carte des retards : NDIAYE HOLDING d'abord (164 jours, le plus gros montant), Tarik OZTURK en dernier (73 jours)", async () => {
     const { rows } = await client.query<{ id: string; nom: string }>(
       `select id, nom from proprietaires where immeuble_id = $1`,
       [immeubleId],
     );
     const nom = new Map(rows.map((r) => [r.id, r.nom]));
     const lignes = listerRetards(situations).map((r) => [nom.get(r.proprietaireId), r.montantEchu, r.joursRetardMax]);
-    expect(lignes[0]).toEqual(["NDIAYE HOLDING", 1_016_400, 178]);
+    expect(lignes[0]).toEqual(["NDIAYE HOLDING", 1_016_400, 164]);
     expect(lignes.slice(1, 3)).toEqual(
       expect.arrayContaining([
-        ["SCI BAOBAB", 71_520, 178],
-        ["Ousmane KANE (remplacement A. SECK)", 71_520, 178],
+        ["SCI BAOBAB", 71_520, 164],
+        ["Ousmane KANE (remplacement A. SECK)", 71_520, 164],
       ]),
     );
-    expect(lignes[3]).toEqual(["Tarik OZTURK", 58_560, 87]);
+    expect(lignes[3]).toEqual(["Tarik OZTURK", 58_560, 73]);
     expect(lignes).toHaveLength(4);
   });
 
